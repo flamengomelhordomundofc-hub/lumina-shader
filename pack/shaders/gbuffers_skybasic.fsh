@@ -20,28 +20,24 @@ void main() {
     vec3 worldDir = safeNormalize((gbufferModelViewInverse * vec4(vViewPos, 0.0)).xyz);
     vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
 
-    float cloudsOn = 0.0;
+    float cloudQ = 0.0;
 #ifdef REALISTIC_CLOUDS
-    cloudsOn = 1.0;
-#endif
-    float auroraOn = 0.0;
-#ifdef AURORA
-    auroraOn = 1.0;
+    cloudQ = 2.0;
 #endif
 
-    vec3 col = computeSkyFull(worldDir, sunDir, frameTimeCounter, rainStrength, cloudsOn, auroraOn);
+    vec3 col = computeSky(worldDir, sunDir, frameTimeCounter, rainStrength, cloudQ);
 
-    float nightVis = (1.0 - smoothstep(-0.14, 0.05, sunDir.y)) * (1.0 - rainStrength);
+    float nightVis = (1.0 - smoothstep(-0.12, 0.05, sunDir.y)) * (1.0 - rainStrength);
     if (nightVis > 0.01 && worldDir.y > 0.02) {
-        vec3 grid = floor(worldDir * 230.0);
+        vec3 grid = floor(worldDir * 220.0);
         float rnd = hash31(grid);
-        if (rnd > 0.992) {
-            float twinkle = 0.55 + 0.45 * sin(frameTimeCounter * 2.8 + rnd * 700.0);
+        if (rnd > 0.993) {
+            float twinkle = 0.6 + 0.4 * sin(frameTimeCounter * 2.6 + rnd * 600.0);
             float hFade = smoothstep(0.02, 0.25, worldDir.y);
-            vec3 starTint = mix(vec3(0.75, 0.88, 1.0), vec3(1.0, 0.86, 0.72), fract(rnd * 97.3));
-            col += starTint * twinkle * hFade * nightVis * 2.2;
+            col += vec3(0.85, 0.92, 1.0) * twinkle * hFade * nightVis * 1.1;
         }
     }
 
-    gl_FragColor = vec4(encodeHDR(col), 1.0);
+    col = toSRGB(softToneMap(col));
+    gl_FragColor = vec4(col, 1.0);
 }

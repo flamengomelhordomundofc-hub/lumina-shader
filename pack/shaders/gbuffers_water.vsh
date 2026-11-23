@@ -33,9 +33,8 @@ void main() {
 #ifdef REALISTIC_WATER
     if (vIsWater > 0.5) {
         vec3 absP = worldPos.xyz + cameraPosition;
-        float w1 = sin(absP.x * 1.5 + frameTimeCounter * 2.4) * cos(absP.z * 1.3 + frameTimeCounter * 1.9);
-        float w2 = sin((absP.x - absP.z) * 1.1 - frameTimeCounter * 2.1);
-        worldPos.y += (w1 * 0.045 + w2 * 0.025);
+        float wave = sin(absP.x * 1.2 + absP.z * 0.9 + frameTimeCounter * 2.2) * 0.032;
+        worldPos.y += wave;
         viewPos = gbufferModelView * worldPos;
     }
 #endif

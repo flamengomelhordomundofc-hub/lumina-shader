@@ -50,7 +50,7 @@ void main() {
     vWorldPos = worldPos.xyz;
 
 #ifdef SHADOWS
-    vec4 shWorld = vec4(worldPos.xyz + vWorldNormal * 0.08, 1.0);
+    vec4 shWorld = vec4(worldPos.xyz + vWorldNormal * 0.07, 1.0);
     vec4 shClip = shadowProjection * (shadowModelView * shWorld);
     vShadowClip = shClip.xyz / max(abs(shClip.w), 0.0001);
 #else
