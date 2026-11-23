@@ -1,4 +1,4 @@
-name: Gerar Shader LuminaLite
+name: Gerar Shader LuminaLite V2
 
 on:
   push:
@@ -16,64 +16,82 @@ jobs:
       - name: Preparar repositorio
         uses: actions/checkout@v4
 
-      - name: Criar arquivos do shader LuminaLite e gerar ZIP
+      - name: Criar arquivos do shader LuminaLite V2 e gerar ZIP
         run: |
+          rm -rf pack
           mkdir -p pack/shaders/lib pack/shaders/lang pack/shaders/world-1 pack/shaders/world1
 
           cat << 'EOF' > pack/shaders/shaders.properties
           shadow.enabled=true
-          clouds=fast
+          clouds=off
           oldLighting=false
           oldHandLight=true
 
-          profile.BATATA = !SHADOWS !GODRAYS !BLOOM !WAVING_FOLIAGE REALISTIC_WATER VIBRANCE
-          profile.LEVE = SHADOWS shadowMapResolution=512 !GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
-          profile.REALISTA = SHADOWS shadowMapResolution=1024 GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
-          profile.ULTRA = SHADOWS shadowMapResolution=2048 GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+          profile.BATATA = !SHADOWS !VOLUMETRIC_LIGHT GODRAYS !LENS_FLARE REALISTIC_CLOUDS REALISTIC_WATER !AUTO_BUMP BLOOM !WAVING_FOLIAGE !AURORA VIBRANCE
+          profile.LEVE = SHADOWS shadowMapResolution=512 VOLUMETRIC_LIGHT VL_STEPS=6 GODRAYS LENS_FLARE REALISTIC_CLOUDS REALISTIC_WATER !AUTO_BUMP BLOOM WAVING_FOLIAGE AURORA VIBRANCE
+          profile.REALISTA = SHADOWS shadowMapResolution=1024 VOLUMETRIC_LIGHT VL_STEPS=8 GODRAYS LENS_FLARE REALISTIC_CLOUDS REALISTIC_WATER AUTO_BUMP BLOOM WAVING_FOLIAGE AURORA VIBRANCE
+          profile.ULTRA = SHADOWS shadowMapResolution=2048 VOLUMETRIC_LIGHT VL_STEPS=12 GODRAYS LENS_FLARE REALISTIC_CLOUDS REALISTIC_WATER AUTO_BUMP BLOOM WAVING_FOLIAGE AURORA VIBRANCE
 
-          screen = SHADOWS shadowMapResolution GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+          screen = SHADOWS shadowMapResolution VOLUMETRIC_LIGHT VL_STEPS GODRAYS LENS_FLARE REALISTIC_CLOUDS REALISTIC_WATER AUTO_BUMP BLOOM WAVING_FOLIAGE AURORA VIBRANCE
           EOF
 
           cat << 'EOF' > pack/shaders/lang/pt_BR.lang
-          profile.BATATA=Celular/PC Muito Fraco
-          profile.LEVE=Leve (Otimizado)
+          profile.BATATA=Celular Muito Fraco (Max FPS)
+          profile.LEVE=Leve (Recomendado Celular/PC Fraco)
           profile.REALISTA=Realista (Padrao)
-          profile.ULTRA=Ultra Bonito
+          profile.ULTRA=Ultra Cinematografico
           option.SHADOWS=Sombras Realistas
           option.shadowMapResolution=Qualidade das Sombras
           value.shadowMapResolution.512=Baixa (Mais FPS)
           value.shadowMapResolution.1024=Media (Equilibrada)
-          value.shadowMapResolution.2048=Alta (Bonita)
+          value.shadowMapResolution.2048=Alta (Nitida)
+          option.VOLUMETRIC_LIGHT=Feixes de Luz 3D
+          option.VL_STEPS=Qualidade dos Feixes 3D
+          value.VL_STEPS.6=Leve (6)
+          value.VL_STEPS.8=Media (8)
+          value.VL_STEPS.12=Alta (12)
           option.GODRAYS=Raios de Sol (Godrays)
-          option.BLOOM=Brilho Suave (Bloom)
-          option.REALISTIC_WATER=Agua Realista
-          option.WAVING_FOLIAGE=Vento nas Folhas
+          option.LENS_FLARE=Reflexo de Lente (Lens Flare)
+          option.REALISTIC_CLOUDS=Nuvens Realistas
+          option.REALISTIC_WATER=Agua Realista + Espuma
+          option.AUTO_BUMP=Relevo 3D nos Blocos
+          option.BLOOM=Brilho Cinematografico (Bloom)
+          option.WAVING_FOLIAGE=Vento nas Folhas e Grama
+          option.AURORA=Aurora Boreal a Noite
           option.VIBRANCE=Cores Vivas
           EOF
 
           cp pack/shaders/lang/pt_BR.lang pack/shaders/lang/en_US.lang
 
           cat << 'EOF' > pack/shaders/block.properties
-          block.10001 = minecraft:water
+          block.10001 = minecraft:water water
           block.10002 = minecraft:oak_leaves minecraft:spruce_leaves minecraft:birch_leaves minecraft:jungle_leaves minecraft:acacia_leaves minecraft:dark_oak_leaves minecraft:mangrove_leaves minecraft:cherry_leaves minecraft:azalea_leaves minecraft:flowering_azalea_leaves
           block.10003 = minecraft:grass minecraft:short_grass minecraft:tall_grass minecraft:fern minecraft:large_fern minecraft:dandelion minecraft:poppy minecraft:blue_orchid minecraft:allium minecraft:azure_bluet minecraft:red_tulip minecraft:orange_tulip minecraft:white_tulip minecraft:pink_tulip minecraft:oxeye_daisy minecraft:cornflower minecraft:lily_of_the_valley minecraft:wither_rose minecraft:sunflower minecraft:lilac minecraft:rose_bush minecraft:peony minecraft:pink_petals minecraft:wheat minecraft:carrots minecraft:potatoes minecraft:beetroots minecraft:sweet_berry_bush minecraft:sugar_cane minecraft:vine minecraft:glow_lichen minecraft:oak_sapling minecraft:spruce_sapling minecraft:birch_sapling minecraft:jungle_sapling minecraft:acacia_sapling minecraft:dark_oak_sapling minecraft:cherry_sapling minecraft:mangrove_propagule minecraft:seagrass minecraft:tall_seagrass minecraft:kelp minecraft:kelp_plant minecraft:dead_bush minecraft:torchflower minecraft:pitcher_plant
-          block.10004 = minecraft:torch minecraft:wall_torch minecraft:soul_torch minecraft:soul_wall_torch minecraft:lantern minecraft:soul_lantern minecraft:glowstone minecraft:sea_lantern minecraft:shroomlight minecraft:jack_o_lantern minecraft:ochre_froglight minecraft:verdant_froglight minecraft:pearlescent_froglight minecraft:campfire minecraft:soul_campfire minecraft:lava minecraft:magma_block minecraft:end_rod minecraft:beacon minecraft:redstone_lamp:lit=true minecraft:furnace:lit=true minecraft:blast_furnace:lit=true minecraft:smoker:lit=true
+          block.10004 = minecraft:torch minecraft:wall_torch minecraft:soul_torch minecraft:soul_wall_torch minecraft:lantern minecraft:soul_lantern minecraft:glowstone minecraft:sea_lantern minecraft:shroomlight minecraft:jack_o_lantern minecraft:ochre_froglight minecraft:verdant_froglight minecraft:pearlescent_froglight minecraft:campfire minecraft:soul_campfire minecraft:lava minecraft:magma_block minecraft:end_rod minecraft:beacon minecraft:redstone_lamp:lit=true minecraft:furnace:lit=true minecraft:blast_furnace:lit=true minecraft:smoker:lit=true minecraft:fire minecraft:soul_fire
+          block.10005 = minecraft:diamond_ore minecraft:deepslate_diamond_ore minecraft:emerald_ore minecraft:deepslate_emerald_ore minecraft:gold_ore minecraft:deepslate_gold_ore minecraft:nether_gold_ore minecraft:redstone_ore minecraft:deepslate_redstone_ore minecraft:lapis_ore minecraft:deepslate_lapis_ore minecraft:amethyst_cluster minecraft:large_amethyst_bud minecraft:crying_obsidian minecraft:respawn_anchor minecraft:sculk_sensor minecraft:calibrated_sculk_sensor minecraft:sculk_shrieker
           EOF
 
           cat << 'EOF' > pack/shaders/lib/settings.glsl
           #define SHADOWS
+          #define VOLUMETRIC_LIGHT
           #define GODRAYS
-          #define BLOOM
+          #define LENS_FLARE
+          #define REALISTIC_CLOUDS
           #define REALISTIC_WATER
+          #define AUTO_BUMP
+          #define BLOOM
           #define WAVING_FOLIAGE
+          #define AURORA
           #define VIBRANCE
+
+          #define VL_STEPS 8 // [6 8 12]
 
           const int shadowMapResolution = 1024; // [512 1024 2048]
           const float shadowDistance = 72.0;
           const float shadowDistanceRenderMul = 1.0;
           const float shadowIntervalSize = 2.0;
-          const float sunPathRotation = -30.0;
-          const float ambientOcclusionLevel = 0.75;
+          const float sunPathRotation = -32.0;
+          const float ambientOcclusionLevel = 0.72;
           EOF
 
           cat << 'EOF' > pack/shaders/lib/common.glsl
@@ -90,6 +108,17 @@ jobs:
               return pow(max(c, vec3(0.0001)), vec3(0.454545));
           }
 
+          vec3 encodeHDR(vec3 x) {
+              x = max(x, vec3(0.0));
+              vec3 c = x / (x + vec3(1.8));
+              return sqrt(max(c, vec3(0.0)));
+          }
+
+          vec3 decodeHDR(vec3 y) {
+              vec3 c = clamp(y * y, vec3(0.0), vec3(0.955));
+              return (c * 1.8) / (vec3(1.0) - c);
+          }
+
           vec3 acesToneMap(vec3 x) {
               const float a = 2.51;
               const float b = 0.03;
@@ -99,72 +128,155 @@ jobs:
               return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
           }
 
+          float linearizeDepth(float d, float n, float f) {
+              return (2.0 * n * f) / max(f + n - (d * 2.0 - 1.0) * (f - n), 0.0001);
+          }
+
           vec2 distortShadow(vec2 p) {
               float dist = length(p);
               return p / mix(1.0, dist, 0.80);
           }
 
+          float hash21(vec2 p) {
+              p = fract(p * vec2(123.34, 456.21));
+              p += dot(p, p + 45.32);
+              return fract(p.x * p.y);
+          }
+
+          float valueNoise(vec2 p) {
+              vec2 i = floor(p);
+              vec2 f = fract(p);
+              f = f * f * (3.0 - 2.0 * f);
+              float a = hash21(i);
+              float b = hash21(i + vec2(1.0, 0.0));
+              float c = hash21(i + vec2(0.0, 1.0));
+              float d = hash21(i + vec2(1.0, 1.0));
+              return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+          }
+
+          float cloudFBM(vec2 p) {
+              float v = 0.0;
+              float amp = 0.5;
+              mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);
+              for (int i = 0; i < 4; i++) {
+                  v += amp * valueNoise(p);
+                  p = rot * p * 2.05 + vec2(1.7, 9.2);
+                  amp *= 0.5;
+              }
+              return v;
+          }
+
           void getAtmosphere(float sunH, float rain, out vec3 zenith, out vec3 horizon, out vec3 lightCol, out vec3 ambSky) {
               float dayF = smoothstep(-0.08, 0.22, sunH);
-              float sunsetF = smoothstep(-0.14, 0.04, sunH) * (1.0 - smoothstep(0.06, 0.34, sunH));
+              float sunsetF = smoothstep(-0.15, 0.04, sunH) * (1.0 - smoothstep(0.05, 0.36, sunH));
 
-              vec3 dayZen = vec3(0.07, 0.24, 0.72);
-              vec3 dayHor = vec3(0.42, 0.68, 0.96);
-              vec3 setZen = vec3(0.09, 0.13, 0.36);
-              vec3 setHor = vec3(1.15, 0.36, 0.10);
-              vec3 nitZen = vec3(0.008, 0.015, 0.042);
-              vec3 nitHor = vec3(0.022, 0.036, 0.075);
+              vec3 dayZen = vec3(0.05, 0.24, 0.85);
+              vec3 dayHor = vec3(0.46, 0.76, 1.12);
+              vec3 setZen = vec3(0.08, 0.12, 0.42);
+              vec3 setHor = vec3(1.65, 0.44, 0.10);
+              vec3 nitZen = vec3(0.006, 0.014, 0.045);
+              vec3 nitHor = vec3(0.020, 0.038, 0.088);
 
               zenith = mix(nitZen, dayZen, dayF);
-              zenith = mix(zenith, setZen, sunsetF * 0.85);
+              zenith = mix(zenith, setZen, sunsetF * 0.88);
 
               horizon = mix(nitHor, dayHor, dayF);
-              horizon = mix(horizon, setHor, sunsetF * 0.92);
+              horizon = mix(horizon, setHor, sunsetF * 0.95);
 
-              vec3 rainZen = mix(vec3(0.015, 0.02, 0.03), vec3(0.16, 0.19, 0.23), dayF);
-              vec3 rainHor = mix(vec3(0.025, 0.03, 0.04), vec3(0.28, 0.31, 0.35), dayF);
-              zenith = mix(zenith, rainZen, rain * 0.85);
-              horizon = mix(horizon, rainHor, rain * 0.85);
+              vec3 rainZen = mix(vec3(0.012, 0.018, 0.030), vec3(0.16, 0.20, 0.26), dayF);
+              vec3 rainHor = mix(vec3(0.025, 0.032, 0.046), vec3(0.32, 0.36, 0.42), dayF);
+              zenith = mix(zenith, rainZen, rain * 0.86);
+              horizon = mix(horizon, rainHor, rain * 0.86);
 
-              vec3 sunCol = mix(vec3(1.55, 0.55, 0.18), vec3(1.55, 1.42, 1.24), smoothstep(0.0, 0.30, sunH));
-              vec3 moonCol = vec3(0.18, 0.26, 0.44);
+              vec3 sunCol = mix(vec3(2.35, 0.72, 0.18), vec3(2.15, 1.92, 1.58), smoothstep(0.0, 0.32, sunH));
+              vec3 moonCol = vec3(0.24, 0.36, 0.64);
               lightCol = (sunH >= 0.0) ? sunCol : moonCol;
-              lightCol *= smoothstep(0.0, 0.12, abs(sunH));
-              lightCol *= (1.0 - rain * 0.78);
+              lightCol *= smoothstep(0.0, 0.10, abs(sunH));
+              lightCol *= (1.0 - rain * 0.76);
 
               ambSky = mix(zenith, horizon, 0.45);
           }
 
-          vec3 computeSky(vec3 dir, vec3 sunDir, float rain) {
+          vec3 computeSkyBase(vec3 dir, vec3 sunDir, float rain) {
               vec3 zen, hor, lCol, aSky;
               getAtmosphere(sunDir.y, rain, zen, hor, lCol, aSky);
 
               float up = clamp(dir.y, 0.0, 1.0);
-              float grad = pow(max(up, 0.0001), 0.55);
-              vec3 sky = mix(hor, zen, grad);
+              vec3 sky = mix(hor, zen, pow(max(up, 0.0001), 0.52));
 
               float below = clamp(-dir.y, 0.0, 1.0);
-              sky = mix(sky, hor * 0.55, smoothstep(0.0, 0.4, below));
+              sky = mix(sky, hor * 0.45, smoothstep(0.0, 0.38, below));
 
               float sunDot = max(dot(dir, sunDir), 0.0);
-              float sunVis = smoothstep(-0.12, 0.08, sunDir.y) * (1.0 - rain * 0.9);
-              vec3 glowCol = mix(vec3(1.4, 0.42, 0.10), vec3(1.2, 1.0, 0.78), smoothstep(0.0, 0.32, sunDir.y));
-              sky += glowCol * pow(max(sunDot, 0.0001), 10.0) * 0.45 * sunVis;
-              sky += glowCol * pow(max(sunDot, 0.0001), 140.0) * 1.8 * sunVis;
+              float sunVis = smoothstep(-0.12, 0.06, sunDir.y) * (1.0 - rain * 0.90);
+              vec3 glowCol = mix(vec3(1.8, 0.48, 0.10), vec3(1.4, 1.18, 0.85), smoothstep(0.0, 0.34, sunDir.y));
+              sky += glowCol * pow(max(sunDot, 0.0001), 7.0) * 0.52 * sunVis;
+              sky += glowCol * pow(max(sunDot, 0.0001), 85.0) * 2.4 * sunVis;
+              sky += vec3(6.5, 5.6, 4.2) * smoothstep(0.9985, 0.9996, sunDot) * sunVis;
 
               float moonDot = max(dot(dir, -sunDir), 0.0);
-              float moonVis = (1.0 - smoothstep(-0.12, 0.06, sunDir.y)) * (1.0 - rain * 0.9);
-              sky += vec3(0.25, 0.36, 0.62) * pow(max(moonDot, 0.0001), 24.0) * 0.35 * moonVis;
+              float moonVis = (1.0 - smoothstep(-0.12, 0.05, sunDir.y)) * (1.0 - rain * 0.90);
+              sky += vec3(0.26, 0.42, 0.78) * pow(max(moonDot, 0.0001), 18.0) * 0.48 * moonVis;
+              sky += vec3(1.8, 2.1, 2.6) * smoothstep(0.9988, 0.9996, moonDot) * moonVis;
+
+              return sky;
+          }
+
+          vec3 computeSkyFull(vec3 dir, vec3 sunDir, float time, float rain, float allowClouds, float allowAurora) {
+              vec3 sky = computeSkyBase(dir, sunDir, rain);
+
+              float nightVis = (1.0 - smoothstep(-0.12, 0.06, sunDir.y)) * (1.0 - rain * 0.95);
+              if (allowAurora > 0.5 && nightVis > 0.02 && dir.y > 0.08) {
+                  vec2 aUV = dir.xz / (dir.y + 0.25);
+                  float wave1 = sin(aUV.x * 2.2 + time * 0.28 + sin(aUV.y * 1.8 - time * 0.18));
+                  float wave2 = sin(aUV.x * 3.8 - time * 0.22 + aUV.y * 2.4);
+                  float band = exp(-abs(wave1 * 0.65 + wave2 * 0.35) * 4.5);
+                  float detail = 0.5 + 0.5 * valueNoise(aUV * 3.0 + vec2(0.0, time * 0.12));
+                  float mask = smoothstep(0.08, 0.38, dir.y) * smoothstep(0.92, 0.35, dir.y);
+                  vec3 aCol = mix(vec3(0.08, 0.95, 0.58), vec3(0.55, 0.16, 0.95), smoothstep(0.22, 0.68, dir.y));
+                  sky += aCol * band * detail * mask * nightVis * 0.42;
+              }
+
+              if (allowClouds > 0.5 && dir.y > 0.02) {
+                  vec3 zen, hor, lCol, aSky;
+                  getAtmosphere(sunDir.y, rain, zen, hor, lCol, aSky);
+
+                  vec2 cUV = (dir.xz / (dir.y + 0.15)) * 1.35 + vec2(time * 0.014, time * 0.007);
+                  float d1 = cloudFBM(cUV);
+                  float dSun = cloudFBM(cUV + sunDir.xz * 0.14);
+
+                  float cov = mix(0.47, 0.26, rain);
+                  float alpha = smoothstep(cov, cov + 0.25, d1);
+
+                  float lightTerm = clamp((d1 - dSun) * 2.4 + 0.55, 0.15, 1.0);
+                  float silver = pow(max(dot(dir, sunDir), 0.0001), 10.0) * (1.0 - alpha * 0.4);
+                  float dayF = smoothstep(-0.08, 0.22, sunDir.y);
+                  float sunsetF = smoothstep(-0.14, 0.04, sunDir.y) * (1.0 - smoothstep(0.05, 0.35, sunDir.y));
+
+                  vec3 cBright = mix(vec3(0.16, 0.24, 0.42), vec3(1.95, 1.88, 1.78), dayF);
+                  cBright = mix(cBright, vec3(2.4, 0.85, 0.32), sunsetF * 0.92);
+                  cBright = mix(cBright, vec3(0.42, 0.46, 0.52) * max(dayF, 0.18), rain * 0.85);
+
+                  vec3 cDark = mix(vec3(0.02, 0.035, 0.075), vec3(0.32, 0.46, 0.68), dayF);
+                  cDark = mix(cDark, vec3(0.34, 0.20, 0.32), sunsetF * 0.85);
+                  cDark = mix(cDark, vec3(0.10, 0.12, 0.16) * max(dayF, 0.2), rain * 0.85);
+
+                  vec3 cloudCol = mix(cDark, cBright, lightTerm);
+                  cloudCol += lCol * silver * 0.65 * (1.0 - rain * 0.8);
+
+                  float horFade = smoothstep(0.02, 0.22, dir.y);
+                  sky = mix(sky, cloudCol, alpha * horFade * 0.92);
+              }
 
               return sky;
           }
 
           vec3 getWaveOffset(vec3 absPos, float time, float rain, float strength) {
-              float speed = 2.0 + rain * 1.8;
-              float amp = (0.045 + rain * 0.04) * strength;
-              float phase = absPos.x * 0.9 + absPos.z * 0.7 + absPos.y * 0.5;
+              float speed = 2.2 + rain * 2.0;
+              float amp = (0.055 + rain * 0.05) * strength;
+              float phase = absPos.x * 0.9 + absPos.z * 0.75 + absPos.y * 0.5;
               float wx = sin(time * speed + phase) * amp;
-              float wz = cos(time * speed * 0.85 + phase * 1.15) * amp * 0.8;
+              float wz = cos(time * speed * 0.85 + phase * 1.15) * amp * 0.85;
               return vec3(wx, 0.0, wz);
           }
           EOF
@@ -251,21 +363,31 @@ jobs:
           void main() {
               vec3 worldDir = safeNormalize((gbufferModelViewInverse * vec4(vViewPos, 0.0)).xyz);
               vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
-              vec3 col = computeSky(worldDir, sunDir, rainStrength);
 
-              float nightVis = (1.0 - smoothstep(-0.14, 0.06, sunDir.y)) * (1.0 - rainStrength);
+              float cloudsOn = 0.0;
+          #ifdef REALISTIC_CLOUDS
+              cloudsOn = 1.0;
+          #endif
+              float auroraOn = 0.0;
+          #ifdef AURORA
+              auroraOn = 1.0;
+          #endif
+
+              vec3 col = computeSkyFull(worldDir, sunDir, frameTimeCounter, rainStrength, cloudsOn, auroraOn);
+
+              float nightVis = (1.0 - smoothstep(-0.14, 0.05, sunDir.y)) * (1.0 - rainStrength);
               if (nightVis > 0.01 && worldDir.y > 0.02) {
-                  vec3 grid = floor(worldDir * 210.0);
+                  vec3 grid = floor(worldDir * 230.0);
                   float rnd = hash31(grid);
-                  if (rnd > 0.994) {
-                      float twinkle = 0.65 + 0.35 * sin(frameTimeCounter * 2.5 + rnd * 600.0);
-                      float horizonFade = smoothstep(0.02, 0.25, worldDir.y);
-                      col += vec3(0.85, 0.92, 1.0) * twinkle * horizonFade * nightVis * 1.4;
+                  if (rnd > 0.992) {
+                      float twinkle = 0.55 + 0.45 * sin(frameTimeCounter * 2.8 + rnd * 700.0);
+                      float hFade = smoothstep(0.02, 0.25, worldDir.y);
+                      vec3 starTint = mix(vec3(0.75, 0.88, 1.0), vec3(1.0, 0.86, 0.72), fract(rnd * 97.3));
+                      col += starTint * twinkle * hFade * nightVis * 2.2;
                   }
               }
 
-              col = linearToSRGB(acesToneMap(col));
-              gl_FragColor = vec4(col, 1.0);
+              gl_FragColor = vec4(encodeHDR(col), 1.0);
           }
           EOF
 
@@ -291,60 +413,8 @@ jobs:
 
           void main() {
               vec4 tex = texture2D(texture, vTexcoord) * vColor;
-              tex.rgb *= (1.35 * (1.0 - rainStrength * 0.85));
+              tex.rgb *= (0.75 * (1.0 - rainStrength * 0.9));
               gl_FragColor = tex;
-          }
-          EOF
-
-          cat << 'EOF' > pack/shaders/gbuffers_clouds.vsh
-          #version 120
-          uniform mat4 gbufferModelViewInverse;
-          varying vec2 vTexcoord;
-          varying vec4 vColor;
-          varying vec3 vWorldPos;
-          varying vec3 vNormal;
-
-          void main() {
-              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
-              vColor = gl_Color;
-              vec4 vp = gl_ModelViewMatrix * gl_Vertex;
-              vWorldPos = (gbufferModelViewInverse * vp).xyz;
-              vNormal = gl_Normal;
-              gl_Position = gl_ProjectionMatrix * vp;
-          }
-          EOF
-
-          cat << 'EOF' > pack/shaders/gbuffers_clouds.fsh
-          #version 120
-          #include "/lib/settings.glsl"
-          #include "/lib/common.glsl"
-
-          /* DRAWBUFFERS:0 */
-          uniform sampler2D texture;
-          uniform mat4 gbufferModelViewInverse;
-          uniform vec3 sunPosition;
-          uniform float rainStrength;
-
-          varying vec2 vTexcoord;
-          varying vec4 vColor;
-          varying vec3 vWorldPos;
-          varying vec3 vNormal;
-
-          void main() {
-              vec4 tex = texture2D(texture, vTexcoord) * vColor;
-              if (tex.a < 0.05) discard;
-
-              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
-              vec3 zen, hor, lCol, aSky;
-              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
-
-              float shade = 0.65 + 0.35 * clamp(vNormal.y * 0.5 + 0.5, 0.0, 1.0);
-              vec3 cloudCol = (hor * 0.95 + lCol * 0.35) * shade;
-              cloudCol = linearToSRGB(acesToneMap(cloudCol));
-
-              float dist = length(vWorldPos.xz);
-              float fade = 1.0 - smoothstep(140.0, 290.0, dist);
-              gl_FragColor = vec4(cloudCol, tex.a * 0.82 * fade);
           }
           EOF
 
@@ -393,6 +463,8 @@ jobs:
           #endif
               } else if (blockId == 10004) {
                   vBlockType = 2.0;
+              } else if (blockId == 10005) {
+                  vBlockType = 3.0;
               }
 
               vViewPos = viewPos.xyz;
@@ -448,7 +520,7 @@ jobs:
               if (depth <= 0.001 || depth >= 0.999) return 1.0;
 
               float bias = 0.0007 + 0.0014 * (1.0 - max(NdotL, 0.0));
-              float off = 1.15 / float(shadowMapResolution);
+              float off = 1.25 / float(shadowMapResolution);
               float lit = 0.0;
               lit += step(depth - bias, texture2D(shadowtex0, uv + vec2( off,  off)).r);
               lit += step(depth - bias, texture2D(shadowtex0, uv + vec2(-off,  off)).r);
@@ -456,7 +528,7 @@ jobs:
               lit += step(depth - bias, texture2D(shadowtex0, uv + vec2(-off, -off)).r);
               lit *= 0.25;
 
-              return mix(lit, 1.0, smoothstep(0.76, 0.99, edgeDist));
+              return mix(lit, 1.0, smoothstep(0.75, 0.99, edgeDist));
           }
           #endif
 
@@ -475,76 +547,105 @@ jobs:
 
               float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
               float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
+              float dist = length(vViewPos);
 
               float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
-              float dist = length(vViewPos);
-              float dynTorch = max(0.0, heldVal - dist / 14.0);
-              torchLight = max(torchLight, dynTorch);
+              torchLight = max(torchLight, max(0.0, heldVal - dist / 15.0));
 
-              float NdotL = dot(N, lightDir);
               float isFoliage = float(vBlockType > 0.5 && vBlockType < 1.5);
-              float isEmissive = float(vBlockType > 1.5);
+              float isEmissive = float(vBlockType > 1.5 && vBlockType < 2.5);
+              float isOre = float(vBlockType > 2.5);
 
+              vec3 bumpN = N;
+          #ifdef AUTO_BUMP
+              if (isFoliage < 0.5 && dist < 38.0) {
+                  float eps = 0.00032;
+                  float hC = dot(tex.rgb, vec3(0.3, 0.59, 0.11));
+                  float hX = dot(texture2D(texture, vTexcoord + vec2(eps, 0.0)).rgb * vColor.rgb, vec3(0.3, 0.59, 0.11));
+                  float hY = dot(texture2D(texture, vTexcoord + vec2(0.0, eps)).rgb * vColor.rgb, vec3(0.3, 0.59, 0.11));
+                  float dx = clamp((hC - hX) * 2.8, -0.35, 0.35);
+                  float dy = clamp((hC - hY) * 2.8, -0.35, 0.35);
+                  vec3 T = (abs(N.y) > 0.5) ? vec3(1.0, 0.0, 0.0) : safeNormalize(cross(vec3(0.0, 1.0, 0.0), N));
+                  vec3 B = safeNormalize(cross(N, T));
+                  bumpN = safeNormalize(N + (T * dx + B * dy) * (1.0 - smoothstep(22.0, 38.0, dist)));
+              }
+          #endif
+
+              float NdotL = dot(bumpN, lightDir);
               float diffuse = max(NdotL, 0.0);
               if (isFoliage > 0.5) {
-                  diffuse = max(diffuse, 0.48);
+                  diffuse = max(dot(N, lightDir), 0.45);
               }
 
               float shadow = 1.0;
           #ifdef SHADOWS
               if (skyLight > 0.05 && (diffuse > 0.0 || isFoliage > 0.5)) {
-                  shadow = getShadow(vShadowClip, NdotL);
+                  shadow = getShadow(vShadowClip, dot(N, lightDir));
               }
           #endif
-              shadow *= smoothstep(0.04, 0.38, skyLight);
+              shadow *= smoothstep(0.04, 0.36, skyLight);
 
-              float hemi = N.y * 0.5 + 0.5;
-              vec3 skyAmbient = mix(aSky * 0.32, aSky * 0.72, hemi) * (skyLight * skyLight);
-              vec3 caveAmbient = vec3(0.018, 0.022, 0.030) + vec3(0.35) * nightVision;
+              float hemi = bumpN.y * 0.5 + 0.5;
+              vec3 skyAmbient = mix(aSky * 0.22, aSky * 0.62, hemi) * (skyLight * skyLight);
+              vec3 caveAmbient = vec3(0.015, 0.020, 0.032) + vec3(0.38) * nightVision;
 
-              float torchCurve = pow(max(torchLight, 0.0001), 2.35) * 1.95;
-              vec3 torchColor = vec3(1.0, 0.54, 0.18) * torchCurve;
+              float torchCurve = pow(max(torchLight, 0.0001), 2.3) * 2.5;
+              vec3 torchColor = vec3(1.0, 0.52, 0.16) * torchCurve;
 
               vec3 direct = lCol * diffuse * shadow;
 
               if (isFoliage > 0.5) {
-                  float backLit = pow(max(dot(viewWorldDir, lightDir), 0.0001), 4.0);
-                  direct += lCol * backLit * 0.45 * shadow;
+                  float backLit = pow(max(dot(viewWorldDir, lightDir), 0.0001), 3.5);
+                  direct += lCol * backLit * 0.68 * shadow;
               }
 
+              vec3 absP = vWorldPos + cameraPosition;
               if (isEyeInWater == 1 && skyLight > 0.25 && diffuse > 0.0) {
-                  vec3 absP = vWorldPos + cameraPosition;
-                  float c1 = sin(absP.x * 1.9 + frameTimeCounter * 2.2) * cos(absP.z * 1.9 - frameTimeCounter * 1.7);
-                  float c2 = sin((absP.x + absP.z) * 1.5 - frameTimeCounter * 2.5);
+                  float c1 = sin(absP.x * 1.9 + frameTimeCounter * 2.4) * cos(absP.z * 1.9 - frameTimeCounter * 1.8);
+                  float c2 = sin((absP.x + absP.z) * 1.5 - frameTimeCounter * 2.7);
                   float caustic = pow(max(c1 * 0.5 + c2 * 0.5 + 0.5, 0.0001), 3.0);
-                  direct += vec3(0.25, 0.75, 0.85) * caustic * 0.45 * shadow * skyLight;
+                  direct += vec3(0.28, 0.85, 0.95) * caustic * 0.65 * shadow * skyLight;
               }
 
-              vec3 totalLight = skyAmbient + caveAmbient + direct + torchColor;
-              vec3 color = albedo * totalLight;
+              vec3 color = albedo * (skyAmbient + caveAmbient + direct + torchColor);
+
+              if (isFoliage < 0.5 && shadow > 0.05 && skyLight > 0.3) {
+                  vec3 H = safeNormalize(lightDir - viewWorldDir);
+                  float spec = pow(max(dot(bumpN, H), 0.0001), 28.0) * 0.24;
+                  color += lCol * spec * shadow * skyLight;
+              }
 
               if (isEmissive > 0.5) {
-                  color += albedo * 2.2;
+                  color += albedo * 4.8 + vec3(0.35, 0.18, 0.04);
               }
 
-              if (rainStrength > 0.05 && skyLight > 0.82 && N.y > 0.65 && isFoliage < 0.5) {
-                  vec2 wp = (vWorldPos.xz + cameraPosition.xz) * 0.35;
-                  float puddle = smoothstep(0.1, 0.65, sin(wp.x) * cos(wp.y) + 0.5 * sin(wp.x * 2.3 + wp.y * 1.7));
-                  float wet = puddle * rainStrength * smoothstep(0.82, 0.98, skyLight);
-                  color *= (1.0 - wet * 0.32);
-                  vec3 R = reflect(viewWorldDir, N);
-                  vec3 refl = computeSky(R, sunDir, rainStrength);
+              if (isOre > 0.5) {
+                  float maxC = max(tex.r, max(tex.g, tex.b));
+                  float minC = min(tex.r, min(tex.g, tex.b));
+                  float sat = (maxC - minC) / max(maxC, 0.001);
+                  float glowMask = smoothstep(0.24, 0.55, sat);
+                  color += albedo * glowMask * 3.2;
+              }
+
+              if (rainStrength > 0.05 && skyLight > 0.80 && N.y > 0.65 && isFoliage < 0.5) {
+                  vec2 wp = absP.xz * 0.32;
+                  float puddle = smoothstep(0.05, 0.62, sin(wp.x) * cos(wp.y) + 0.5 * sin(wp.x * 2.3 + wp.y * 1.7));
+                  float wet = puddle * rainStrength * smoothstep(0.80, 0.98, skyLight);
+                  color *= (1.0 - wet * 0.38);
+                  vec3 R = reflect(viewWorldDir, mix(bumpN, N, 0.7));
+                  vec3 refl = computeSkyBase(R, sunDir, rainStrength);
                   float fres = pow(1.0 - max(dot(-viewWorldDir, N), 0.0), 3.0);
-                  color = mix(color, refl * 0.9, wet * (0.18 + 0.55 * fres));
+                  color = mix(color, refl * 1.1, wet * (0.22 + 0.62 * fres));
               }
 
-              float fogF = smoothstep(far * 0.52, far * 0.98, dist);
-              fogF = clamp(fogF + smoothstep(22.0, far * 1.45, dist) * (0.10 + 0.22 * rainStrength), 0.0, 1.0);
-              vec3 fogCol = computeSky(safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z)), sunDir, rainStrength);
+              float fogF = smoothstep(far * 0.48, far * 0.98, dist);
+              float valleyHaze = smoothstep(18.0, far * 1.35, dist) * (0.12 + 0.24 * rainStrength);
+              fogF = clamp(fogF + valleyHaze, 0.0, 1.0);
+              vec3 fogDir = safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z));
+              vec3 fogCol = computeSkyBase(fogDir, sunDir, rainStrength);
               color = mix(color, fogCol, fogF);
 
-              color = linearToSRGB(acesToneMap(color));
-              gl_FragColor = vec4(color, tex.a);
+              gl_FragColor = vec4(encodeHDR(color), tex.a);
           }
           EOF
 
@@ -584,8 +685,9 @@ jobs:
           #ifdef REALISTIC_WATER
               if (vIsWater > 0.5) {
                   vec3 absP = worldPos.xyz + cameraPosition;
-                  float wave = sin(absP.x * 1.4 + frameTimeCounter * 2.3) * cos(absP.z * 1.2 + frameTimeCounter * 1.8) * 0.045;
-                  worldPos.y += wave;
+                  float w1 = sin(absP.x * 1.5 + frameTimeCounter * 2.4) * cos(absP.z * 1.3 + frameTimeCounter * 1.9);
+                  float w2 = sin((absP.x - absP.z) * 1.1 - frameTimeCounter * 2.1);
+                  worldPos.y += (w1 * 0.045 + w2 * 0.025);
                   viewPos = gbufferModelView * worldPos;
               }
           #endif
@@ -603,12 +705,16 @@ jobs:
 
           /* DRAWBUFFERS:0 */
           uniform sampler2D texture;
+          uniform sampler2D depthtex1;
           uniform mat4 gbufferModelViewInverse;
           uniform vec3 sunPosition;
           uniform vec3 shadowLightPosition;
           uniform vec3 cameraPosition;
           uniform float frameTimeCounter;
           uniform float rainStrength;
+          uniform float viewWidth;
+          uniform float viewHeight;
+          uniform float near;
           uniform float far;
 
           varying vec2 vTexcoord;
@@ -620,11 +726,12 @@ jobs:
           varying float vIsWater;
 
           vec3 getWaterNormal(vec2 pos, float t) {
-              float w1 = sin(pos.x * 2.4 + t * 2.2) * cos(pos.y * 2.1 - t * 1.7);
-              float w2 = sin((pos.x * 1.7 - pos.y * 2.5) + t * 2.9);
-              float w3 = cos((pos.x * 3.8 + pos.y * 3.2) - t * 3.4);
-              float dx = (w1 * 0.45 + w2 * 0.35 + w3 * 0.20) * 0.085;
-              float dz = (w1 * 0.35 - w2 * 0.45 + w3 * 0.20) * 0.085;
+              float w1 = sin(pos.x * 2.6 + t * 2.4) * cos(pos.y * 2.2 - t * 1.9);
+              float w2 = sin((pos.x * 1.9 - pos.y * 2.7) + t * 3.1);
+              float w3 = cos((pos.x * 4.4 + pos.y * 3.8) - t * 3.8);
+              float w4 = sin((pos.x * 6.5 - pos.y * 5.2) + t * 4.2);
+              float dx = (w1 * 0.42 + w2 * 0.32 + w3 * 0.18 + w4 * 0.12) * 0.19;
+              float dz = (w1 * 0.32 - w2 * 0.42 + w3 * 0.18 - w4 * 0.12) * 0.19;
               return safeNormalize(vec3(dx, 1.0, dz));
           }
 
@@ -652,42 +759,60 @@ jobs:
                   vec3 absP = vWorldPos + cameraPosition;
                   vec3 wN = (abs(N.y) > 0.5) ? getWaterNormal(absP.xz, frameTimeCounter) : N;
 
+                  vec2 screenUV = gl_FragCoord.xy / vec2(max(viewWidth, 1.0), max(viewHeight, 1.0));
+                  float bgDepth = linearizeDepth(texture2D(depthtex1, screenUV).r, near, far);
+                  float fgDepth = linearizeDepth(gl_FragCoord.z, near, far);
+                  float thickness = (bgDepth > fgDepth + 0.01) ? (bgDepth - fgDepth) : 2.8;
+                  float depthFade = 1.0 - exp(-thickness * 0.30);
+
+                  float cloudsOn = 0.0;
+          #ifdef REALISTIC_CLOUDS
+                  cloudsOn = 1.0;
+          #endif
                   vec3 R = reflect(viewWorldDir, wN);
-                  R.y = abs(R.y);
-                  vec3 skyRefl = computeSky(R, sunDir, rainStrength) * (0.25 + 0.75 * skyLight);
+                  R.y = max(abs(R.y), 0.02);
+                  vec3 skyRefl = computeSkyFull(R, sunDir, frameTimeCounter, rainStrength, cloudsOn, 0.0) * (0.18 + 0.82 * skyLight);
 
                   float cosTheta = max(dot(-viewWorldDir, wN), 0.0);
-                  float fresnel = clamp(0.05 + 0.95 * pow(1.0 - cosTheta, 4.0), 0.0, 1.0);
+                  float fresnel = clamp(0.05 + 0.95 * pow(1.0 - cosTheta, 3.8), 0.0, 1.0);
 
-                  vec3 baseTint = srgbToLinear(vColor.rgb) * vec3(0.06, 0.24, 0.30);
-                  vec3 waterBody = baseTint * (aSky * skyLight + lCol * 0.45 * skyLight + vec3(0.04));
+                  vec3 shallowCol = vec3(0.07, 0.52, 0.56);
+                  vec3 deepCol = vec3(0.012, 0.08, 0.20);
+                  vec3 waterTint = mix(shallowCol, deepCol, depthFade) * (0.45 + 0.55 * srgbToLinear(vColor.rgb));
+                  vec3 waterBody = waterTint * (aSky * 0.9 * skyLight + lCol * 0.55 * skyLight + vec3(0.04));
 
                   vec3 H = safeNormalize(lightDir - viewWorldDir);
-                  float spec = pow(max(dot(wN, H), 0.0001), 160.0) * 3.2 * skyLight;
-                  vec3 specular = lCol * spec;
+                  float specWide = pow(max(dot(wN, H), 0.0001), 32.0) * 0.45;
+                  float specSharp = pow(max(dot(wN, H), 0.0001), 220.0) * 6.5;
+                  vec3 specular = lCol * (specWide + specSharp) * skyLight;
 
-                  vec3 torchCol = vec3(1.0, 0.55, 0.20) * pow(max(torchLight, 0.0001), 2.3);
+                  vec3 torchCol = vec3(1.0, 0.52, 0.18) * pow(max(torchLight, 0.0001), 2.2) * 1.4;
                   color = mix(waterBody, skyRefl, fresnel) + specular + waterBody * torchCol;
-                  alpha = mix(0.46, 0.92, fresnel);
+
+                  float foamWave = sin(thickness * 15.0 - frameTimeCounter * 3.4 + absP.x * 2.2 + absP.z * 2.2) * 0.5 + 0.5;
+                  float foam = smoothstep(0.48, 0.02, thickness) * (0.45 + 0.55 * foamWave) * smoothstep(25.0, 4.0, dist);
+                  vec3 foamCol = (aSky * 0.6 + lCol * 0.7 + vec3(0.15)) * (0.35 + 0.65 * skyLight);
+                  color = mix(color, foamCol, foam * 0.68);
+
+                  alpha = clamp(max(mix(0.32, 0.88, depthFade), fresnel) + foam * 0.45, 0.30, 0.96);
               } else
           #endif
               {
                   vec3 albedo = srgbToLinear(tex.rgb);
                   float diffuse = max(dot(N, lightDir), 0.0);
-                  vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.3) * 1.8;
+                  vec3 torchCol = vec3(1.0, 0.52, 0.18) * pow(max(torchLight, 0.0001), 2.3) * 2.2;
                   color = albedo * (aSky * 0.55 * skyLight + lCol * diffuse * skyLight + torchCol + vec3(0.05));
 
                   vec3 R = reflect(viewWorldDir, N);
-                  float fresnel = 0.06 + 0.45 * pow(1.0 - max(dot(-viewWorldDir, N), 0.0), 3.0);
-                  color += computeSky(R, sunDir, rainStrength) * fresnel * 0.35 * skyLight;
+                  float fresnel = 0.08 + 0.52 * pow(1.0 - max(dot(-viewWorldDir, N), 0.0), 3.0);
+                  color += computeSkyBase(R, sunDir, rainStrength) * fresnel * 0.45 * skyLight;
               }
 
-              float fogF = smoothstep(far * 0.52, far * 0.98, dist);
-              vec3 fogCol = computeSky(safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z)), sunDir, rainStrength);
-              color = mix(color, fogCol, fogF);
+              float fogF = smoothstep(far * 0.48, far * 0.98, dist);
+              vec3 fogDir = safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z));
+              color = mix(color, computeSkyBase(fogDir, sunDir, rainStrength), fogF);
 
-              color = linearToSRGB(acesToneMap(color));
-              gl_FragColor = vec4(color, alpha);
+              gl_FragColor = vec4(encodeHDR(color), alpha);
           }
           EOF
 
@@ -760,21 +885,20 @@ jobs:
               float dist = length(vViewPos);
 
               float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
-              torchLight = max(torchLight, max(0.0, heldVal - dist / 14.0));
+              torchLight = max(torchLight, max(0.0, heldVal - dist / 15.0));
 
               float diff = max(dot(N, lightDir), 0.0) * 0.85 + 0.15;
-              vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.3) * 1.9;
-              vec3 floorAmb = srgbToLinear(fogColor) * 0.14 + vec3(0.025) + vec3(0.35) * nightVision;
+              vec3 torchCol = vec3(1.0, 0.52, 0.16) * pow(max(torchLight, 0.0001), 2.2) * 2.4;
+              vec3 floorAmb = srgbToLinear(fogColor) * 0.15 + vec3(0.025) + vec3(0.38) * nightVision;
 
-              vec3 color = albedo * (aSky * 0.60 * skyLight + lCol * diff * skyLight + torchCol + floorAmb);
+              vec3 color = albedo * (aSky * 0.58 * skyLight + lCol * diff * skyLight + torchCol + floorAmb);
 
-              float fogF = smoothstep(far * 0.55, far * 0.98, dist);
+              float fogF = smoothstep(far * 0.48, far * 0.98, dist);
               vec3 viewDir = safeNormalize(vWorldPos);
-              vec3 fogCol = computeSky(safeNormalize(vec3(viewDir.x, max(viewDir.y, 0.02), viewDir.z)), sunDir, rainStrength);
-              color = mix(color, fogCol, fogF);
+              vec3 fogDir = safeNormalize(vec3(viewDir.x, max(viewDir.y, 0.02), viewDir.z));
+              color = mix(color, computeSkyBase(fogDir, sunDir, rainStrength), fogF);
 
-              color = linearToSRGB(acesToneMap(color));
-              gl_FragColor = vec4(color, tex.a);
+              gl_FragColor = vec4(encodeHDR(color), tex.a);
           }
           EOF
 
@@ -837,15 +961,14 @@ jobs:
               float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
               float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
               float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
-              torchLight = max(torchLight, heldVal * 0.85);
+              torchLight = max(torchLight, heldVal * 0.9);
 
-              float diff = max(dot(N, lightDir), 0.0) * 0.75 + 0.25;
-              vec3 torchCol = vec3(1.0, 0.56, 0.22) * pow(max(torchLight, 0.0001), 2.1) * 1.8;
-              vec3 amb = srgbToLinear(fogColor) * 0.15 + vec3(0.04) + vec3(0.35) * nightVision;
+              float diff = max(dot(N, lightDir), 0.0) * 0.78 + 0.22;
+              vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.1) * 2.2;
+              vec3 amb = srgbToLinear(fogColor) * 0.15 + vec3(0.04) + vec3(0.38) * nightVision;
 
-              vec3 color = albedo * (aSky * 0.65 * skyLight + lCol * diff * skyLight + torchCol + amb);
-              color = linearToSRGB(acesToneMap(color));
-              gl_FragColor = vec4(color, tex.a);
+              vec3 color = albedo * (aSky * 0.62 * skyLight + lCol * diff * skyLight + torchCol + amb);
+              gl_FragColor = vec4(encodeHDR(color), tex.a);
           }
           EOF
 
@@ -899,21 +1022,172 @@ jobs:
 
               float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
               float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
-              vec3 torchCol = vec3(1.0, 0.56, 0.22) * pow(max(torchLight, 0.0001), 2.0) * 1.9;
+              vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.0) * 2.4;
 
-              vec3 color = albedo * ((aSky * 0.65 + lCol * 0.45) * skyLight + torchCol + srgbToLinear(fogColor) * 0.12 + vec3(0.05));
-              float fogF = smoothstep(far * 0.55, far * 0.98, length(vViewPos));
+              vec3 color = albedo * ((aSky * 0.65 + lCol * 0.45) * skyLight + torchCol + srgbToLinear(fogColor) * 0.14 + vec3(0.05));
+              float fogF = smoothstep(far * 0.48, far * 0.98, length(vViewPos));
               vec3 vDir = safeNormalize(vWorldPos);
-              vec3 fogCol = computeSky(safeNormalize(vec3(vDir.x, max(vDir.y, 0.02), vDir.z)), sunDir, rainStrength);
-              color = mix(color, fogCol, fogF);
+              vec3 fogDir = safeNormalize(vec3(vDir.x, max(vDir.y, 0.02), vDir.z));
+              color = mix(color, computeSkyBase(fogDir, sunDir, rainStrength), fogF);
 
-              color = linearToSRGB(acesToneMap(color));
-              gl_FragColor = vec4(color, tex.a);
+              gl_FragColor = vec4(encodeHDR(color), tex.a);
           }
           EOF
 
           cp pack/shaders/gbuffers_textured.vsh pack/shaders/gbuffers_weather.vsh
           cp pack/shaders/gbuffers_textured.fsh pack/shaders/gbuffers_weather.fsh
+
+          cat << 'EOF' > pack/shaders/composite.vsh
+          #version 120
+          varying vec2 vTexcoord;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              gl_Position = ftransform();
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/composite.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D colortex0;
+          uniform sampler2D depthtex0;
+          uniform sampler2D shadowtex0;
+          uniform mat4 gbufferProjection;
+          uniform mat4 gbufferProjectionInverse;
+          uniform mat4 gbufferModelViewInverse;
+          uniform mat4 shadowModelView;
+          uniform mat4 shadowProjection;
+          uniform vec3 sunPosition;
+          uniform vec3 shadowLightPosition;
+          uniform vec3 cameraPosition;
+          uniform float rainStrength;
+          uniform float viewWidth;
+          uniform float viewHeight;
+          uniform int isEyeInWater;
+          uniform ivec2 eyeBrightnessSmooth;
+
+          varying vec2 vTexcoord;
+
+          void main() {
+              vec3 color = decodeHDR(texture2D(colortex0, vTexcoord).rgb);
+              float depth = texture2D(depthtex0, vTexcoord).r;
+
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 lightDir = safeNormalize((gbufferModelViewInverse * vec4(shadowLightPosition, 0.0)).xyz);
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+
+          #if defined(VOLUMETRIC_LIGHT) && defined(SHADOWS)
+              if (isEyeInWater == 0 && rainStrength < 0.92) {
+                  vec3 ndcPos = vec3(vTexcoord, depth) * 2.0 - 1.0;
+                  vec4 viewPosH = gbufferProjectionInverse * vec4(ndcPos, 1.0);
+                  vec3 viewPos = viewPosH.xyz / max(abs(viewPosH.w), 0.0001);
+
+                  vec3 worldStart = (gbufferModelViewInverse * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+                  vec3 worldEnd = (gbufferModelViewInverse * vec4(viewPos, 1.0)).xyz;
+                  vec3 rayVec = worldEnd - worldStart;
+                  float rayLen = length(rayVec);
+                  vec3 rayDir = rayVec / max(rayLen, 0.0001);
+                  float marchDist = min(rayLen, 66.0);
+
+                  float cosTheta = dot(rayDir, lightDir);
+                  float g = 0.66;
+                  float phase = (1.0 - g * g) / max(pow(1.0 + g * g - 2.0 * g * cosTheta, 1.5), 0.05);
+                  phase = clamp(phase * 0.24 + 0.14, 0.10, 2.4);
+
+                  float vlSum = 0.0;
+                  for (int i = 0; i < VL_STEPS; i++) {
+                      float t = (float(i) + ign) / float(VL_STEPS);
+                      float dStep = marchDist * mix(t, t * t, 0.35);
+                      vec3 sp = worldStart + rayDir * dStep;
+                      vec4 shClip = shadowProjection * (shadowModelView * vec4(sp, 1.0));
+                      vec3 shPos = shClip.xyz / max(abs(shClip.w), 0.0001);
+
+                      float lit = 1.0;
+                      if (abs(shPos.x) < 0.99 && abs(shPos.y) < 0.99) {
+                          vec2 shUV = distortShadow(shPos.xy) * 0.5 + 0.5;
+                          float shDepth = (shPos.z * 0.5) * 0.5 + 0.5;
+                          lit = step(shDepth - 0.001, texture2D(shadowtex0, shUV).r);
+                      }
+                      float hDens = exp(-max((sp.y + cameraPosition.y) - 62.0, 0.0) * 0.014);
+                      vlSum += lit * (0.45 + 0.55 * hDens);
+                  }
+                  vlSum /= float(VL_STEPS);
+
+                  float sunsetBoost = 1.0 + 1.15 * smoothstep(-0.08, 0.05, sunDir.y) * (1.0 - smoothstep(0.05, 0.35, sunDir.y));
+                  float distF = clamp(marchDist / 48.0, 0.0, 1.0);
+                  float eyeSky = clamp(float(eyeBrightnessSmooth.y) / 240.0, 0.0, 1.0);
+                  float shaftStr = (0.45 + 0.55 * eyeSky) * (1.0 - rainStrength * 0.8) * sunsetBoost;
+                  color += lCol * vlSum * phase * distF * shaftStr * 0.36;
+              }
+          #endif
+
+          #if defined(GODRAYS) || defined(LENS_FLARE)
+              float sunVis = smoothstep(-0.06, 0.12, sunDir.y) * (1.0 - rainStrength * 0.92);
+              if (sunVis > 0.01 && sunPosition.z < -0.5) {
+                  vec4 sunClip = gbufferProjection * vec4(sunPosition, 1.0);
+                  if (sunClip.w > 0.001) {
+                      vec2 sunUV = (sunClip.xy / sunClip.w) * 0.5 + 0.5;
+                      float aspect = viewWidth / max(viewHeight, 1.0);
+
+          #ifdef GODRAYS
+                      float screenFade = 1.0 - smoothstep(0.15, 1.35, length((sunUV - vec2(0.5)) * vec2(aspect, 1.0)));
+                      if (screenFade > 0.01) {
+                          vec2 delta = (sunUV - vTexcoord) * (0.90 / 14.0);
+                          vec2 rayUV = vTexcoord + delta * ign;
+                          float rays = 0.0;
+                          float decay = 1.0;
+                          for (int j = 0; j < 14; j++) {
+                              rayUV += delta;
+                              if (rayUV.x > 0.0 && rayUV.x < 1.0 && rayUV.y > 0.0 && rayUV.y < 1.0) {
+                                  float d = texture2D(depthtex0, rayUV).r;
+                                  rays += smoothstep(0.9985, 0.9999, d) * decay;
+                              }
+                              decay *= 0.88;
+                          }
+                          vec3 rayCol = mix(vec3(1.85, 0.62, 0.16), vec3(1.45, 1.25, 0.88), smoothstep(0.0, 0.34, sunDir.y));
+                          color += rayCol * (rays * 0.095) * sunVis * screenFade;
+                      }
+          #endif
+
+          #ifdef LENS_FLARE
+                      if (sunUV.x > 0.0 && sunUV.x < 1.0 && sunUV.y > 0.0 && sunUV.y < 1.0 && isEyeInWater == 0) {
+                          float sunUnoccluded = smoothstep(0.9985, 0.9999, texture2D(depthtex0, sunUV).r);
+                          if (sunUnoccluded > 0.01) {
+                              vec2 uvA = (vTexcoord - vec2(0.5)) * vec2(aspect, 1.0);
+                              vec2 sunA = (sunUV - vec2(0.5)) * vec2(aspect, 1.0);
+                              vec2 diff = uvA - sunA;
+
+                              float streak = exp(-abs(diff.y) * 58.0) * exp(-abs(diff.x) * 3.8);
+                              vec3 flare = vec3(1.4, 1.05, 0.65) * streak * 0.55;
+
+                              float g1 = max(0.0, 1.0 - length(uvA + sunA * 0.45) * 9.5);
+                              float g2 = max(0.0, 1.0 - length(uvA + sunA * 0.85) * 14.0);
+                              float g3 = max(0.0, 1.0 - length(uvA - sunA * 0.35) * 12.0);
+                              float ring = smoothstep(0.18, 0.21, length(uvA + sunA * 0.65)) * (1.0 - smoothstep(0.21, 0.25, length(uvA + sunA * 0.65)));
+
+                              flare += vec3(0.45, 0.85, 1.2) * (g1 * g1) * 0.22;
+                              flare += vec3(1.3, 0.68, 0.28) * (g2 * g2) * 0.28;
+                              flare += vec3(0.95, 1.1, 0.55) * (g3 * g3) * 0.16;
+                              flare += vec3(0.85, 0.72, 1.15) * ring * 0.18;
+
+                              color += flare * sunVis * sunUnoccluded;
+                          }
+                      }
+          #endif
+                  }
+              }
+          #endif
+
+              gl_FragColor = vec4(encodeHDR(color), 1.0);
+          }
+          EOF
 
           cat << 'EOF' > pack/shaders/final.vsh
           #version 120
@@ -932,96 +1206,86 @@ jobs:
 
           uniform sampler2D colortex0;
           uniform sampler2D depthtex0;
-          uniform mat4 gbufferProjection;
-          uniform mat4 gbufferModelViewInverse;
-          uniform vec3 sunPosition;
           uniform float viewWidth;
           uniform float viewHeight;
           uniform float frameTimeCounter;
-          uniform float rainStrength;
           uniform int isEyeInWater;
           uniform float near;
           uniform float far;
 
           varying vec2 vTexcoord;
 
-          float linearizeDepth(float d) {
-              return (2.0 * near * far) / max(far + near - (d * 2.0 - 1.0) * (far - near), 0.0001);
+          vec3 sampleBloom(vec2 uv) {
+              vec3 c = decodeHDR(texture2D(colortex0, clamp(uv, 0.001, 0.999)).rgb);
+              return max(c - vec3(1.05), vec3(0.0));
           }
 
           void main() {
               vec2 uv = vTexcoord;
 
               if (isEyeInWater == 1) {
-                  uv.x += sin(uv.y * 18.0 + frameTimeCounter * 3.0) * 0.0028;
-                  uv.y += cos(uv.x * 16.0 + frameTimeCounter * 2.5) * 0.0028;
+                  uv.x += sin(uv.y * 19.0 + frameTimeCounter * 3.2) * 0.0032;
+                  uv.y += cos(uv.x * 17.0 + frameTimeCounter * 2.6) * 0.0032;
                   uv = clamp(uv, 0.002, 0.998);
               }
 
-              vec3 color = texture2D(colortex0, uv).rgb;
-              vec2 texel = vec2(1.0 / max(viewWidth, 1.0), 1.0 / max(viewHeight, 1.0));
+              vec3 color = decodeHDR(texture2D(colortex0, uv).rgb);
+              vec2 px = vec2(1.0 / max(viewWidth, 1.0), 1.0 / max(viewHeight, 1.0));
 
           #ifdef BLOOM
-              vec3 glow = vec3(0.0);
-              vec2 o1 = texel * 2.5;
-              vec2 o2 = texel * 5.5;
-              glow += max(texture2D(colortex0, clamp(uv + vec2( o1.x,  o1.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2(-o1.x,  o1.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2( o1.x, -o1.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2(-o1.x, -o1.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2( o2.x,  0.0 ), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2(-o2.x,  0.0 ), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2( 0.0,   o2.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              glow += max(texture2D(colortex0, clamp(uv + vec2( 0.0,  -o2.y), 0.0, 1.0)).rgb - 0.72, 0.0);
-              color += glow * 0.14;
-          #endif
+              vec3 b1 = vec3(0.0);
+              vec2 r1 = px * 4.0;
+              b1 += sampleBloom(uv + vec2( r1.x,  r1.y));
+              b1 += sampleBloom(uv + vec2(-r1.x,  r1.y));
+              b1 += sampleBloom(uv + vec2( r1.x, -r1.y));
+              b1 += sampleBloom(uv + vec2(-r1.x, -r1.y));
 
-          #ifdef GODRAYS
-              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
-              float sunVis = smoothstep(-0.04, 0.14, sunDir.y) * (1.0 - rainStrength * 0.9);
-              if (sunVis > 0.01 && sunPosition.z < -0.5) {
-                  vec4 sunClip = gbufferProjection * vec4(sunPosition, 1.0);
-                  if (sunClip.w > 0.001) {
-                      vec2 sunUV = (sunClip.xy / sunClip.w) * 0.5 + 0.5;
-                      float screenFade = 1.0 - smoothstep(0.15, 1.25, length(sunUV - vec2(0.5)));
-                      if (screenFade > 0.01) {
-                          vec2 delta = (sunUV - uv) * 0.11;
-                          float jitter = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-                          vec2 rayUV = uv + delta * jitter;
-                          float rays = 0.0;
-                          float decay = 1.0;
-                          for (int i = 0; i < 8; i++) {
-                              rayUV += delta;
-                              if (rayUV.x > 0.0 && rayUV.x < 1.0 && rayUV.y > 0.0 && rayUV.y < 1.0) {
-                                  float d = texture2D(depthtex0, rayUV).r;
-                                  rays += step(0.9998, d) * decay;
-                              }
-                              decay *= 0.84;
-                          }
-                          vec3 rayCol = mix(vec3(1.0, 0.48, 0.18), vec3(1.0, 0.90, 0.70), smoothstep(0.0, 0.35, sunDir.y));
-                          color += rayCol * (rays * 0.048) * sunVis * screenFade;
-                      }
-                  }
-              }
+              vec3 b2 = vec3(0.0);
+              vec2 r2 = px * 11.0;
+              b2 += sampleBloom(uv + vec2( r2.x,  0.0 ));
+              b2 += sampleBloom(uv + vec2(-r2.x,  0.0 ));
+              b2 += sampleBloom(uv + vec2( 0.0,   r2.y));
+              b2 += sampleBloom(uv + vec2( 0.0,  -r2.y));
+
+              vec3 b3 = vec3(0.0);
+              vec2 r3 = px * 24.0;
+              b3 += sampleBloom(uv + vec2( r3.x,  r3.y));
+              b3 += sampleBloom(uv + vec2(-r3.x,  r3.y));
+              b3 += sampleBloom(uv + vec2( r3.x, -r3.y));
+              b3 += sampleBloom(uv + vec2(-r3.x, -r3.y));
+
+              vec3 b4 = vec3(0.0);
+              vec2 r4 = px * 42.0;
+              b4 += sampleBloom(uv + vec2( r4.x,  0.0 ));
+              b4 += sampleBloom(uv + vec2(-r4.x,  0.0 ));
+              b4 += sampleBloom(uv + vec2( 0.0,   r4.y));
+              b4 += sampleBloom(uv + vec2( 0.0,  -r4.y));
+
+              vec3 bloom = (b1 * 0.36 + b2 * 0.28 + b3 * 0.22 + b4 * 0.14) * 0.11;
+              color += bloom;
           #endif
 
               if (isEyeInWater == 1) {
-                  float depth = linearizeDepth(texture2D(depthtex0, uv).r);
-                  float waterFog = clamp(1.0 - exp(-depth * 0.045), 0.0, 0.88);
-                  color = mix(color, vec3(0.04, 0.24, 0.34), waterFog);
+                  float depth = linearizeDepth(texture2D(depthtex0, uv).r, near, far);
+                  float waterFog = clamp(1.0 - exp(-depth * 0.052), 0.0, 0.90);
+                  color = mix(color, vec3(0.02, 0.22, 0.36), waterFog);
               }
+
+              color = acesToneMap(color * 1.06);
+              color = linearToSRGB(color);
 
           #ifdef VIBRANCE
               float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
               float maxC = max(color.r, max(color.g, color.b));
               float minC = min(color.r, min(color.g, color.b));
               float sat = maxC - minC;
-              color = mix(vec3(luma), color, 1.0 + (1.0 - sat) * 0.24);
+              color = mix(vec3(luma), color, 1.0 + (1.0 - sat) * 0.30);
+              color = clamp((color - 0.5) * 1.05 + 0.5, 0.0, 1.0);
           #endif
 
-              vec2 vigPos = vTexcoord - vec2(0.5);
-              float vig = 1.0 - dot(vigPos, vigPos) * 0.36;
-              color *= clamp(vig, 0.78, 1.0);
+              vec2 vp = vTexcoord - vec2(0.5);
+              float vig = 1.0 - dot(vp, vp) * 0.38;
+              color *= clamp(vig, 0.76, 1.0);
 
               gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
           }
@@ -1071,30 +1335,31 @@ jobs:
               float dist = length(vViewPos);
               float torch = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
               float held = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
-              torch = max(torch, max(0.0, held - dist / 14.0));
+              torch = max(torch, max(0.0, held - dist / 15.0));
 
-              float shade = 0.7 + 0.3 * (vNormal.y * 0.5 + 0.5);
-              vec3 amb = mix(vec3(0.22, 0.07, 0.04), srgbToLinear(fogColor) * 0.85, 0.55) * shade;
-              vec3 light = amb + vec3(1.15, 0.52, 0.18) * pow(max(torch, 0.0001), 2.1) * 2.1;
+              float shade = 0.68 + 0.32 * (vNormal.y * 0.5 + 0.5);
+              vec3 amb = mix(vec3(0.28, 0.08, 0.04), srgbToLinear(fogColor) * 0.9, 0.55) * shade;
+              vec3 light = amb + vec3(1.5, 0.58, 0.18) * pow(max(torch, 0.0001), 2.1) * 2.6;
               vec3 col = albedo * light;
-              float fogF = smoothstep(far * 0.25, far * 0.92, dist);
-              col = mix(col, srgbToLinear(fogColor) * 0.65, fogF);
-              gl_FragColor = vec4(linearToSRGB(acesToneMap(col)), tex.a);
+              float fogF = smoothstep(far * 0.22, far * 0.90, dist);
+              col = mix(col, srgbToLinear(fogColor) * 0.72, fogF);
+              gl_FragColor = vec4(encodeHDR(col), tex.a);
+          }
+          EOF
+
+          cp pack/shaders/composite.vsh pack/shaders/world-1/composite.vsh
+          cat << 'EOF' > pack/shaders/world-1/composite.fsh
+          #version 120
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D colortex0;
+          varying vec2 vTexcoord;
+          void main() {
+              gl_FragColor = texture2D(colortex0, vTexcoord);
           }
           EOF
 
           cp pack/shaders/final.vsh pack/shaders/world-1/final.vsh
-          cat << 'EOF' > pack/shaders/world-1/final.fsh
-          #version 120
-          uniform sampler2D colortex0;
-          varying vec2 vTexcoord;
-          void main() {
-              vec3 c = texture2D(colortex0, vTexcoord).rgb;
-              vec2 p = vTexcoord - vec2(0.5);
-              c *= clamp(1.0 - dot(p, p) * 0.42, 0.72, 1.0);
-              gl_FragColor = vec4(c, 1.0);
-          }
-          EOF
+          cp pack/shaders/final.fsh pack/shaders/world-1/final.fsh
 
           cp pack/shaders/world-1/gbuffers_terrain.vsh pack/shaders/world1/gbuffers_terrain.vsh
           cat << 'EOF' > pack/shaders/world1/gbuffers_terrain.fsh
@@ -1102,7 +1367,6 @@ jobs:
           #include "/lib/common.glsl"
           /* DRAWBUFFERS:0 */
           uniform sampler2D texture;
-          uniform vec3 fogColor;
           uniform float far;
           uniform int heldBlockLightValue;
           uniform int heldBlockLightValue2;
@@ -1120,37 +1384,40 @@ jobs:
               float dist = length(vViewPos);
               float torch = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
               float held = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
-              torch = max(torch, max(0.0, held - dist / 14.0));
+              torch = max(torch, max(0.0, held - dist / 15.0));
 
               float shade = 0.65 + 0.35 * (vNormal.y * 0.5 + 0.5);
-              vec3 amb = vec3(0.18, 0.13, 0.28) * shade;
-              vec3 light = amb + vec3(0.95, 0.65, 1.0) * pow(max(torch, 0.0001), 2.1) * 1.9;
+              vec3 amb = vec3(0.22, 0.14, 0.36) * shade;
+              vec3 light = amb + vec3(1.1, 0.68, 1.4) * pow(max(torch, 0.0001), 2.1) * 2.2;
               vec3 col = albedo * light;
-              float fogF = smoothstep(far * 0.45, far * 0.98, dist);
-              col = mix(col, vec3(0.05, 0.03, 0.09), fogF);
-              gl_FragColor = vec4(linearToSRGB(acesToneMap(col)), tex.a);
+              float fogF = smoothstep(far * 0.42, far * 0.96, dist);
+              col = mix(col, vec3(0.06, 0.03, 0.12), fogF);
+              gl_FragColor = vec4(encodeHDR(col), tex.a);
           }
           EOF
 
-          cp pack/shaders/world-1/final.vsh pack/shaders/world1/final.vsh
-          cp pack/shaders/world-1/final.fsh pack/shaders/world1/final.fsh
+          cp pack/shaders/world-1/composite.vsh pack/shaders/world1/composite.vsh
+          cp pack/shaders/world-1/composite.fsh pack/shaders/world1/composite.fsh
+          cp pack/shaders/final.vsh pack/shaders/world1/final.vsh
+          cp pack/shaders/final.fsh pack/shaders/world1/final.fsh
 
           cd pack
-          zip -r ../LuminaLite-Realista-1.20.1.zip shaders/
+          zip -r ../LuminaLite-V2-Realista-1.20.1.zip shaders/
           cd ..
 
-      - name: Salvar ZIP direto na pagina inicial
+      - name: Salvar ZIP V2 na pagina inicial
         run: |
+          rm -f LuminaLite-Realista-1.20.1.zip
           git config user.name "LuminaLite Bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -f LuminaLite-Realista-1.20.1.zip
+          git add -A
           if ! git diff --staged --quiet; then
-            git commit -m "Shader LuminaLite-Realista-1.20.1.zip pronto"
+            git commit -m "Shader LuminaLite V2 Ultra-Realista 1.20.1"
             git push
           fi
 
-      - name: Publicar ZIP na aba Releases
+      - name: Publicar ZIP V2 na aba Releases
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload v1 LuminaLite-Realista-1.20.1.zip --clobber || gh release create v1 LuminaLite-Realista-1.20.1.zip --title "LuminaLite Realista 1.20.1" --notes "Toque no arquivo LuminaLite-Realista-1.20.1.zip abaixo para baixar e mova direto para a pasta shaderpacks!"
+          gh release upload v2 LuminaLite-V2-Realista-1.20.1.zip --clobber || gh release create v2 LuminaLite-V2-Realista-1.20.1.zip --title "LuminaLite V2 Ultra-Realista 1.20.1" --notes "Toque em LuminaLite-V2-Realista-1.20.1.zip para baixar e mova direto para shaderpacks!"
