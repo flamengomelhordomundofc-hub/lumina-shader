@@ -1,0 +1,866 @@
+name: Gerar Shader LuminaLite
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-shader:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Criar arquivos do shader LuminaLite
+        run: |
+          mkdir -p pack/shaders/lib pack/shaders/lang pack/shaders/world-1 pack/shaders/world1
+
+          cat << 'EOF' > pack/shaders/shaders.properties
+          shadow.enabled=true
+          clouds=fast
+          oldLighting=false
+          oldHandLight=true
+
+          profile.BATATA = !SHADOWS !GODRAYS !BLOOM !WAVING_FOLIAGE REALISTIC_WATER VIBRANCE
+          profile.LEVE = SHADOWS shadowMapResolution=512 !GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+          profile.REALISTA = SHADOWS shadowMapResolution=1024 GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+          profile.ULTRA = SHADOWS shadowMapResolution=2048 GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+
+          screen = SHADOWS shadowMapResolution GODRAYS BLOOM REALISTIC_WATER WAVING_FOLIAGE VIBRANCE
+          EOF
+
+          cat << 'EOF' > pack/shaders/lang/pt_BR.lang
+          profile.BATATA=Celular/PC Muito Fraco
+          profile.LEVE=Leve (Otimizado)
+          profile.REALISTA=Realista (Padrao)
+          profile.ULTRA=Ultra Bonito
+          option.SHADOWS=Sombras Realistas
+          option.shadowMapResolution=Qualidade das Sombras
+          value.shadowMapResolution.512=Baixa (Mais FPS)
+          value.shadowMapResolution.1024=Media (Equilibrada)
+          value.shadowMapResolution.2048=Alta (Bonita)
+          option.GODRAYS=Raios de Sol (Godrays)
+          option.BLOOM=Brilho Suave (Bloom)
+          option.REALISTIC_WATER=Agua Realista
+          option.WAVING_FOLIAGE=Vento nas Folhas
+          option.VIBRANCE=Cores Vivas
+          EOF
+
+          cp pack/shaders/lang/pt_BR.lang pack/shaders/lang/en_US.lang
+
+          cat << 'EOF' > pack/shaders/block.properties
+          block.10001 = minecraft:water
+          block.10002 = minecraft:oak_leaves minecraft:spruce_leaves minecraft:birch_leaves minecraft:jungle_leaves minecraft:acacia_leaves minecraft:dark_oak_leaves minecraft:mangrove_leaves minecraft:cherry_leaves minecraft:azalea_leaves minecraft:flowering_azalea_leaves
+          block.10003 = minecraft:grass minecraft:short_grass minecraft:tall_grass minecraft:fern minecraft:large_fern minecraft:dandelion minecraft:poppy minecraft:blue_orchid minecraft:allium minecraft:azure_bluet minecraft:red_tulip minecraft:orange_tulip minecraft:white_tulip minecraft:pink_tulip minecraft:oxeye_daisy minecraft:cornflower minecraft:lily_of_the_valley minecraft:wither_rose minecraft:sunflower minecraft:lilac minecraft:rose_bush minecraft:peony minecraft:pink_petals minecraft:wheat minecraft:carrots minecraft:potatoes minecraft:beetroots minecraft:sweet_berry_bush minecraft:sugar_cane minecraft:vine minecraft:glow_lichen minecraft:oak_sapling minecraft:spruce_sapling minecraft:birch_sapling minecraft:jungle_sapling minecraft:acacia_sapling minecraft:dark_oak_sapling minecraft:cherry_sapling minecraft:mangrove_propagule minecraft:seagrass minecraft:tall_seagrass minecraft:kelp minecraft:kelp_plant minecraft:dead_bush minecraft:torchflower minecraft:pitcher_plant
+          block.10004 = minecraft:torch minecraft:wall_torch minecraft:soul_torch minecraft:soul_wall_torch minecraft:lantern minecraft:soul_lantern minecraft:glowstone minecraft:sea_lantern minecraft:shroomlight minecraft:jack_o_lantern minecraft:ochre_froglight minecraft:verdant_froglight minecraft:pearlescent_froglight minecraft:campfire minecraft:soul_campfire minecraft:lava minecraft:magma_block minecraft:end_rod minecraft:beacon minecraft:redstone_lamp:lit=true minecraft:furnace:lit=true minecraft:blast_furnace:lit=true minecraft:smoker:lit=true
+          EOF
+
+          cat << 'EOF' > pack/shaders/lib/settings.glsl
+          #define SHADOWS
+          #define GODRAYS
+          #define BLOOM
+          #define REALISTIC_WATER
+          #define WAVING_FOLIAGE
+          #define VIBRANCE
+
+          const int shadowMapResolution = 1024; // [512 1024 2048]
+          const float shadowDistance = 72.0;
+          const float shadowDistanceRenderMul = 1.0;
+          const float shadowIntervalSize = 2.0;
+          const float sunPathRotation = -30.0;
+          const float ambientOcclusionLevel = 0.75;
+          EOF
+
+          cat << 'EOF' > pack/shaders/lib/common.glsl
+          vec3 safeNormalize(vec3 v) {
+              float l2 = dot(v, v);
+              return (l2 > 0.000001) ? v * inversesqrt(l2) : vec3(0.0, 1.0, 0.0);
+          }
+
+          vec3 srgbToLinear(vec3 c) {
+              return pow(max(c, vec3(0.0001)), vec3(2.2));
+          }
+
+          vec3 linearToSRGB(vec3 c) {
+              return pow(max(c, vec3(0.0001)), vec3(0.454545));
+          }
+
+          vec3 acesToneMap(vec3 x) {
+              const float a = 2.51;
+              const float b = 0.03;
+              const float c = 2.43;
+              const float d = 0.59;
+              const float e = 0.14;
+              return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+          }
+
+          vec2 distortShadow(vec2 p) {
+              float dist = length(p);
+              return p / mix(1.0, dist, 0.80);
+          }
+
+          void getAtmosphere(float sunH, float rain, out vec3 zenith, out vec3 horizon, out vec3 lightCol, out vec3 ambSky) {
+              float dayF = smoothstep(-0.08, 0.22, sunH);
+              float sunsetF = smoothstep(-0.14, 0.04, sunH) * (1.0 - smoothstep(0.06, 0.34, sunH));
+
+              vec3 dayZen = vec3(0.07, 0.24, 0.72);
+              vec3 dayHor = vec3(0.42, 0.68, 0.96);
+              vec3 setZen = vec3(0.09, 0.13, 0.36);
+              vec3 setHor = vec3(1.15, 0.36, 0.10);
+              vec3 nitZen = vec3(0.008, 0.015, 0.042);
+              vec3 nitHor = vec3(0.022, 0.036, 0.075);
+
+              zenith = mix(nitZen, dayZen, dayF);
+              zenith = mix(zenith, setZen, sunsetF * 0.85);
+
+              horizon = mix(nitHor, dayHor, dayF);
+              horizon = mix(horizon, setHor, sunsetF * 0.92);
+
+              vec3 rainZen = mix(vec3(0.015, 0.02, 0.03), vec3(0.16, 0.19, 0.23), dayF);
+              vec3 rainHor = mix(vec3(0.025, 0.03, 0.04), vec3(0.28, 0.31, 0.35), dayF);
+              zenith = mix(zenith, rainZen, rain * 0.85);
+              horizon = mix(horizon, rainHor, rain * 0.85);
+
+              vec3 sunCol = mix(vec3(1.55, 0.55, 0.18), vec3(1.55, 1.42, 1.24), smoothstep(0.0, 0.30, sunH));
+              vec3 moonCol = vec3(0.18, 0.26, 0.44);
+              lightCol = (sunH >= 0.0) ? sunCol : moonCol;
+              lightCol *= smoothstep(0.0, 0.12, abs(sunH));
+              lightCol *= (1.0 - rain * 0.78);
+
+              ambSky = mix(zenith, horizon, 0.45);
+          }
+
+          vec3 computeSky(vec3 dir, vec3 sunDir, float rain) {
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rain, zen, hor, lCol, aSky);
+
+              float up = clamp(dir.y, 0.0, 1.0);
+              float grad = pow(max(up, 0.0001), 0.55);
+              vec3 sky = mix(hor, zen, grad);
+
+              float below = clamp(-dir.y, 0.0, 1.0);
+              sky = mix(sky, hor * 0.55, smoothstep(0.0, 0.4, below));
+
+              float sunDot = max(dot(dir, sunDir), 0.0);
+              float sunVis = smoothstep(-0.12, 0.08, sunDir.y) * (1.0 - rain * 0.9);
+              vec3 glowCol = mix(vec3(1.4, 0.42, 0.10), vec3(1.2, 1.0, 0.78), smoothstep(0.0, 0.32, sunDir.y));
+              sky += glowCol * pow(max(sunDot, 0.0001), 10.0) * 0.45 * sunVis;
+              sky += glowCol * pow(max(sunDot, 0.0001), 140.0) * 1.8 * sunVis;
+
+              float moonDot = max(dot(dir, -sunDir), 0.0);
+              float moonVis = (1.0 - smoothstep(-0.12, 0.06, sunDir.y)) * (1.0 - rain * 0.9);
+              sky += vec3(0.25, 0.36, 0.62) * pow(max(moonDot, 0.0001), 24.0) * 0.35 * moonVis;
+
+              return sky;
+          }
+
+          vec3 getWaveOffset(vec3 absPos, float time, float rain, float strength) {
+              float speed = 2.0 + rain * 1.8;
+              float amp = (0.045 + rain * 0.04) * strength;
+              float phase = absPos.x * 0.9 + absPos.z * 0.7 + absPos.y * 0.5;
+              float wx = sin(time * speed + phase) * amp;
+              float wz = cos(time * speed * 0.85 + phase * 1.15) * amp * 0.8;
+              return vec3(wx, 0.0, wz);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/shadow.vsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          attribute vec4 mc_Entity;
+          uniform mat4 shadowModelView;
+          uniform mat4 shadowModelViewInverse;
+          uniform vec3 cameraPosition;
+          uniform float frameTimeCounter;
+          uniform float rainStrength;
+
+          varying vec2 vTexcoord;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+          #ifndef SHADOWS
+              gl_Position = vec4(10.0, 10.0, 10.0, 1.0);
+              return;
+          #endif
+              int blockId = int(mc_Entity.x + 0.5);
+              if (blockId == 10001) {
+                  gl_Position = vec4(10.0, 10.0, 10.0, 1.0);
+                  return;
+              }
+              vec4 worldPos = shadowModelViewInverse * (gl_ModelViewMatrix * gl_Vertex);
+          #ifdef WAVING_FOLIAGE
+              if (blockId == 10002 || blockId == 10003) {
+                  float str = (blockId == 10002) ? 0.65 : 1.0;
+                  worldPos.xyz += getWaveOffset(worldPos.xyz + cameraPosition, frameTimeCounter, rainStrength, str);
+              }
+          #endif
+              gl_Position = gl_ProjectionMatrix * (shadowModelView * worldPos);
+              gl_Position.xy = distortShadow(gl_Position.xy);
+              gl_Position.z *= 0.5;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/shadow.fsh
+          #version 120
+          uniform sampler2D texture;
+          varying vec2 vTexcoord;
+
+          void main() {
+              if (texture2D(texture, vTexcoord).a < 0.1) discard;
+              gl_FragColor = vec4(1.0);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_skybasic.vsh
+          #version 120
+          varying vec3 vViewPos;
+
+          void main() {
+              vec4 vp = gl_ModelViewMatrix * gl_Vertex;
+              vViewPos = vp.xyz;
+              gl_Position = gl_ProjectionMatrix * vp;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_skybasic.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform float rainStrength;
+          uniform float frameTimeCounter;
+
+          varying vec3 vViewPos;
+
+          float hash31(vec3 p) {
+              p = fract(p * 0.1031);
+              p += dot(p, p.yzx + 33.33);
+              return fract((p.x + p.y) * p.z);
+          }
+
+          void main() {
+              vec3 worldDir = safeNormalize((gbufferModelViewInverse * vec4(vViewPos, 0.0)).xyz);
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 col = computeSky(worldDir, sunDir, rainStrength);
+
+              float nightVis = (1.0 - smoothstep(-0.14, 0.06, sunDir.y)) * (1.0 - rainStrength);
+              if (nightVis > 0.01 && worldDir.y > 0.02) {
+                  vec3 grid = floor(worldDir * 210.0);
+                  float rnd = hash31(grid);
+                  if (rnd > 0.994) {
+                      float twinkle = 0.65 + 0.35 * sin(frameTimeCounter * 2.5 + rnd * 600.0);
+                      float horizonFade = smoothstep(0.02, 0.25, worldDir.y);
+                      col += vec3(0.85, 0.92, 1.0) * twinkle * horizonFade * nightVis * 1.4;
+                  }
+              }
+
+              col = linearToSRGB(acesToneMap(col));
+              gl_FragColor = vec4(col, 1.0);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_skytextured.vsh
+          #version 120
+          varying vec2 vTexcoord;
+          varying vec4 vColor;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vColor = gl_Color;
+              gl_Position = ftransform();
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_skytextured.fsh
+          #version 120
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform float rainStrength;
+          varying vec2 vTexcoord;
+          varying vec4 vColor;
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              tex.rgb *= (1.35 * (1.0 - rainStrength * 0.85));
+              gl_FragColor = tex;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_clouds.vsh
+          #version 120
+          uniform mat4 gbufferModelViewInverse;
+          varying vec2 vTexcoord;
+          varying vec4 vColor;
+          varying vec3 vWorldPos;
+          varying vec3 vNormal;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vColor = gl_Color;
+              vec4 vp = gl_ModelViewMatrix * gl_Vertex;
+              vWorldPos = (gbufferModelViewInverse * vp).xyz;
+              vNormal = gl_Normal;
+              gl_Position = gl_ProjectionMatrix * vp;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_clouds.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform float rainStrength;
+
+          varying vec2 vTexcoord;
+          varying vec4 vColor;
+          varying vec3 vWorldPos;
+          varying vec3 vNormal;
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              if (tex.a < 0.05) discard;
+
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float shade = 0.65 + 0.35 * clamp(vNormal.y * 0.5 + 0.5, 0.0, 1.0);
+              vec3 cloudCol = (hor * 0.95 + lCol * 0.35) * shade;
+              cloudCol = linearToSRGB(acesToneMap(cloudCol));
+
+              float dist = length(vWorldPos.xz);
+              float fade = 1.0 - smoothstep(140.0, 290.0, dist);
+              gl_FragColor = vec4(cloudCol, tex.a * 0.82 * fade);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_terrain.vsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          attribute vec4 mc_Entity;
+          uniform mat4 gbufferModelView;
+          uniform mat4 gbufferModelViewInverse;
+          uniform mat4 shadowModelView;
+          uniform mat4 shadowProjection;
+          uniform vec3 cameraPosition;
+          uniform float frameTimeCounter;
+          uniform float rainStrength;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+          varying vec3 vShadowClip;
+          varying float vBlockType;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vLightmap = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+              vColor = gl_Color;
+
+              vec3 viewNormal = safeNormalize(gl_NormalMatrix * gl_Normal);
+              vWorldNormal = safeNormalize(mat3(gbufferModelViewInverse) * viewNormal);
+
+              vec4 viewPos = gl_ModelViewMatrix * gl_Vertex;
+              vec4 worldPos = gbufferModelViewInverse * viewPos;
+
+              int blockId = int(mc_Entity.x + 0.5);
+              vBlockType = 0.0;
+              if (blockId == 10002 || blockId == 10003) {
+                  vBlockType = 1.0;
+          #ifdef WAVING_FOLIAGE
+                  float str = (blockId == 10002) ? 0.65 : 1.0;
+                  worldPos.xyz += getWaveOffset(worldPos.xyz + cameraPosition, frameTimeCounter, rainStrength, str);
+                  viewPos = gbufferModelView * worldPos;
+          #endif
+              } else if (blockId == 10004) {
+                  vBlockType = 2.0;
+              }
+
+              vViewPos = viewPos.xyz;
+              vWorldPos = worldPos.xyz;
+
+          #ifdef SHADOWS
+              vec4 shWorld = vec4(worldPos.xyz + vWorldNormal * 0.08, 1.0);
+              vec4 shClip = shadowProjection * (shadowModelView * shWorld);
+              vShadowClip = shClip.xyz / max(abs(shClip.w), 0.0001);
+          #else
+              vShadowClip = vec3(0.0);
+          #endif
+
+              gl_Position = gl_ProjectionMatrix * viewPos;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_terrain.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform sampler2D shadowtex0;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform vec3 shadowLightPosition;
+          uniform vec3 cameraPosition;
+          uniform float frameTimeCounter;
+          uniform float rainStrength;
+          uniform int isEyeInWater;
+          uniform float far;
+          uniform float nightVision;
+          uniform int heldBlockLightValue;
+          uniform int heldBlockLightValue2;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+          varying vec3 vShadowClip;
+          varying float vBlockType;
+
+          #ifdef SHADOWS
+          float getShadow(vec3 sClip, float NdotL) {
+              float edgeDist = max(abs(sClip.x), abs(sClip.y));
+              if (edgeDist >= 0.995) return 1.0;
+              vec2 uv = distortShadow(sClip.xy) * 0.5 + 0.5;
+              float depth = (sClip.z * 0.5) * 0.5 + 0.5;
+              if (depth <= 0.001 || depth >= 0.999) return 1.0;
+
+              float bias = 0.0007 + 0.0014 * (1.0 - max(NdotL, 0.0));
+              float off = 1.15 / float(shadowMapResolution);
+              float lit = 0.0;
+              lit += step(depth - bias, texture2D(shadowtex0, uv + vec2( off,  off)).r);
+              lit += step(depth - bias, texture2D(shadowtex0, uv + vec2(-off,  off)).r);
+              lit += step(depth - bias, texture2D(shadowtex0, uv + vec2( off, -off)).r);
+              lit += step(depth - bias, texture2D(shadowtex0, uv + vec2(-off, -off)).r);
+              lit *= 0.25;
+
+              return mix(lit, 1.0, smoothstep(0.76, 0.99, edgeDist));
+          }
+          #endif
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              if (tex.a < 0.1) discard;
+
+              vec3 albedo = srgbToLinear(tex.rgb);
+              vec3 N = safeNormalize(vWorldNormal);
+              vec3 viewWorldDir = safeNormalize(vWorldPos);
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 lightDir = safeNormalize((gbufferModelViewInverse * vec4(shadowLightPosition, 0.0)).xyz);
+
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
+              float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
+
+              float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
+              float dist = length(vViewPos);
+              float dynTorch = max(0.0, heldVal - dist / 14.0);
+              torchLight = max(torchLight, dynTorch);
+
+              float NdotL = dot(N, lightDir);
+              float isFoliage = float(vBlockType > 0.5 && vBlockType < 1.5);
+              float isEmissive = float(vBlockType > 1.5);
+
+              float diffuse = max(NdotL, 0.0);
+              if (isFoliage > 0.5) {
+                  diffuse = max(diffuse, 0.48);
+              }
+
+              float shadow = 1.0;
+          #ifdef SHADOWS
+              if (skyLight > 0.05 && (diffuse > 0.0 || isFoliage > 0.5)) {
+                  shadow = getShadow(vShadowClip, NdotL);
+              }
+          #endif
+              shadow *= smoothstep(0.04, 0.38, skyLight);
+
+              float hemi = N.y * 0.5 + 0.5;
+              vec3 skyAmbient = mix(aSky * 0.32, aSky * 0.72, hemi) * (skyLight * skyLight);
+              vec3 caveAmbient = vec3(0.018, 0.022, 0.030) + vec3(0.35) * nightVision;
+
+              float torchCurve = pow(max(torchLight, 0.0001), 2.35) * 1.95;
+              vec3 torchColor = vec3(1.0, 0.54, 0.18) * torchCurve;
+
+              vec3 direct = lCol * diffuse * shadow;
+
+              if (isFoliage > 0.5) {
+                  float backLit = pow(max(dot(viewWorldDir, lightDir), 0.0001), 4.0);
+                  direct += lCol * backLit * 0.45 * shadow;
+              }
+
+              if (isEyeInWater == 1 && skyLight > 0.25 && diffuse > 0.0) {
+                  vec3 absP = vWorldPos + cameraPosition;
+                  float c1 = sin(absP.x * 1.9 + frameTimeCounter * 2.2) * cos(absP.z * 1.9 - frameTimeCounter * 1.7);
+                  float c2 = sin((absP.x + absP.z) * 1.5 - frameTimeCounter * 2.5);
+                  float caustic = pow(max(c1 * 0.5 + c2 * 0.5 + 0.5, 0.0001), 3.0);
+                  direct += vec3(0.25, 0.75, 0.85) * caustic * 0.45 * shadow * skyLight;
+              }
+
+              vec3 totalLight = skyAmbient + caveAmbient + direct + torchColor;
+              vec3 color = albedo * totalLight;
+
+              if (isEmissive > 0.5) {
+                  color += albedo * 2.2;
+              }
+
+              if (rainStrength > 0.05 && skyLight > 0.82 && N.y > 0.65 && isFoliage < 0.5) {
+                  vec2 wp = (vWorldPos.xz + cameraPosition.xz) * 0.35;
+                  float puddle = smoothstep(0.1, 0.65, sin(wp.x) * cos(wp.y) + 0.5 * sin(wp.x * 2.3 + wp.y * 1.7));
+                  float wet = puddle * rainStrength * smoothstep(0.82, 0.98, skyLight);
+                  color *= (1.0 - wet * 0.32);
+                  vec3 R = reflect(viewWorldDir, N);
+                  vec3 refl = computeSky(R, sunDir, rainStrength);
+                  float fres = pow(1.0 - max(dot(-viewWorldDir, N), 0.0), 3.0);
+                  color = mix(color, refl * 0.9, wet * (0.18 + 0.55 * fres));
+              }
+
+              float fogF = smoothstep(far * 0.52, far * 0.98, dist);
+              fogF = clamp(fogF + smoothstep(22.0, far * 1.45, dist) * (0.10 + 0.22 * rainStrength), 0.0, 1.0);
+              vec3 fogCol = computeSky(safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z)), sunDir, rainStrength);
+              color = mix(color, fogCol, fogF);
+
+              color = linearToSRGB(acesToneMap(color));
+              gl_FragColor = vec4(color, tex.a);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_water.vsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          attribute vec4 mc_Entity;
+          uniform mat4 gbufferModelView;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 cameraPosition;
+          uniform float frameTimeCounter;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+          varying float vIsWater;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vLightmap = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+              vColor = gl_Color;
+
+              vec3 viewNormal = safeNormalize(gl_NormalMatrix * gl_Normal);
+              vWorldNormal = safeNormalize(mat3(gbufferModelViewInverse) * viewNormal);
+
+              vec4 viewPos = gl_ModelViewMatrix * gl_Vertex;
+              vec4 worldPos = gbufferModelViewInverse * viewPos;
+
+              int blockId = int(mc_Entity.x + 0.5);
+              vIsWater = (blockId == 10001) ? 1.0 : 0.0;
+
+          #ifdef REALISTIC_WATER
+              if (vIsWater > 0.5) {
+                  vec3 absP = worldPos.xyz + cameraPosition;
+                  float wave = sin(absP.x * 1.4 + frameTimeCounter * 2.3) * cos(absP.z * 1.2 + frameTimeCounter * 1.8) * 0.045;
+                  worldPos.y += wave;
+                  viewPos = gbufferModelView * worldPos;
+              }
+          #endif
+
+              vViewPos = viewPos.xyz;
+              vWorldPos = worldPos.xyz;
+              gl_Position = gl_ProjectionMatrix * viewPos;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_water.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform vec3 shadowLightPosition;
+          uniform vec3 cameraPosition;
+          uniform float frameTimeCounter;
+          uniform float rainStrength;
+          uniform float far;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+          varying float vIsWater;
+
+          vec3 getWaterNormal(vec2 pos, float t) {
+              float w1 = sin(pos.x * 2.4 + t * 2.2) * cos(pos.y * 2.1 - t * 1.7);
+              float w2 = sin((pos.x * 1.7 - pos.y * 2.5) + t * 2.9);
+              float w3 = cos((pos.x * 3.8 + pos.y * 3.2) - t * 3.4);
+              float dx = (w1 * 0.45 + w2 * 0.35 + w3 * 0.20) * 0.085;
+              float dz = (w1 * 0.35 - w2 * 0.45 + w3 * 0.20) * 0.085;
+              return safeNormalize(vec3(dx, 1.0, dz));
+          }
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              if (tex.a < 0.01) discard;
+
+              vec3 N = safeNormalize(vWorldNormal);
+              vec3 viewWorldDir = safeNormalize(vWorldPos);
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 lightDir = safeNormalize((gbufferModelViewInverse * vec4(shadowLightPosition, 0.0)).xyz);
+
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
+              float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
+              float dist = length(vViewPos);
+
+              vec3 color;
+              float alpha = tex.a;
+
+          #ifdef REALISTIC_WATER
+              if (vIsWater > 0.5) {
+                  vec3 absP = vWorldPos + cameraPosition;
+                  vec3 wN = (abs(N.y) > 0.5) ? getWaterNormal(absP.xz, frameTimeCounter) : N;
+
+                  vec3 R = reflect(viewWorldDir, wN);
+                  R.y = abs(R.y);
+                  vec3 skyRefl = computeSky(R, sunDir, rainStrength) * (0.25 + 0.75 * skyLight);
+
+                  float cosTheta = max(dot(-viewWorldDir, wN), 0.0);
+                  float fresnel = clamp(0.05 + 0.95 * pow(1.0 - cosTheta, 4.0), 0.0, 1.0);
+
+                  vec3 baseTint = srgbToLinear(vColor.rgb) * vec3(0.06, 0.24, 0.30);
+                  vec3 waterBody = baseTint * (aSky * skyLight + lCol * 0.45 * skyLight + vec3(0.04));
+
+                  vec3 H = safeNormalize(lightDir - viewWorldDir);
+                  float spec = pow(max(dot(wN, H), 0.0001), 160.0) * 3.2 * skyLight;
+                  vec3 specular = lCol * spec;
+
+                  vec3 torchCol = vec3(1.0, 0.55, 0.20) * pow(max(torchLight, 0.0001), 2.3);
+                  color = mix(waterBody, skyRefl, fresnel) + specular + waterBody * torchCol;
+                  alpha = mix(0.46, 0.92, fresnel);
+              } else
+          #endif
+              {
+                  vec3 albedo = srgbToLinear(tex.rgb);
+                  float diffuse = max(dot(N, lightDir), 0.0);
+                  vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.3) * 1.8;
+                  color = albedo * (aSky * 0.55 * skyLight + lCol * diffuse * skyLight + torchCol + vec3(0.05));
+
+                  vec3 R = reflect(viewWorldDir, N);
+                  float fresnel = 0.06 + 0.45 * pow(1.0 - max(dot(-viewWorldDir, N), 0.0), 3.0);
+                  color += computeSky(R, sunDir, rainStrength) * fresnel * 0.35 * skyLight;
+              }
+
+              float fogF = smoothstep(far * 0.52, far * 0.98, dist);
+              vec3 fogCol = computeSky(safeNormalize(vec3(viewWorldDir.x, max(viewWorldDir.y, 0.02), viewWorldDir.z)), sunDir, rainStrength);
+              color = mix(color, fogCol, fogF);
+
+              color = linearToSRGB(acesToneMap(color));
+              gl_FragColor = vec4(color, alpha);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_entities.vsh
+          #version 120
+          #include "/lib/common.glsl"
+
+          uniform mat4 gbufferModelViewInverse;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vLightmap = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+              vColor = gl_Color;
+              vec3 vn = safeNormalize(gl_NormalMatrix * gl_Normal);
+              vWorldNormal = safeNormalize(mat3(gbufferModelViewInverse) * vn);
+              vec4 vp = gl_ModelViewMatrix * gl_Vertex;
+              vViewPos = vp.xyz;
+              vWorldPos = (gbufferModelViewInverse * vp).xyz;
+              gl_Position = gl_ProjectionMatrix * vp;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_entities.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform vec3 shadowLightPosition;
+          uniform vec4 entityColor;
+          uniform float rainStrength;
+          uniform float far;
+          uniform float nightVision;
+          uniform int heldBlockLightValue;
+          uniform int heldBlockLightValue2;
+          uniform vec3 fogColor;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              if (tex.a < 0.1) discard;
+              tex.rgb = mix(tex.rgb, entityColor.rgb, entityColor.a);
+
+              vec3 albedo = srgbToLinear(tex.rgb);
+              vec3 N = safeNormalize(vWorldNormal);
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 lightDir = safeNormalize((gbufferModelViewInverse * vec4(shadowLightPosition, 0.0)).xyz);
+
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
+              float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
+              float dist = length(vViewPos);
+
+              float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
+              torchLight = max(torchLight, max(0.0, heldVal - dist / 14.0));
+
+              float diff = max(dot(N, lightDir), 0.0) * 0.85 + 0.15;
+              vec3 torchCol = vec3(1.0, 0.54, 0.18) * pow(max(torchLight, 0.0001), 2.3) * 1.9;
+              vec3 floorAmb = srgbToLinear(fogColor) * 0.14 + vec3(0.025) + vec3(0.35) * nightVision;
+
+              vec3 color = albedo * (aSky * 0.60 * skyLight + lCol * diff * skyLight + torchCol + floorAmb);
+
+              float fogF = smoothstep(far * 0.55, far * 0.98, dist);
+              vec3 viewDir = safeNormalize(vWorldPos);
+              vec3 fogCol = computeSky(safeNormalize(vec3(viewDir.x, max(viewDir.y, 0.02), viewDir.z)), sunDir, rainStrength);
+              color = mix(color, fogCol, fogF);
+
+              color = linearToSRGB(acesToneMap(color));
+              gl_FragColor = vec4(color, tex.a);
+          }
+          EOF
+
+          cp pack/shaders/gbuffers_entities.vsh pack/shaders/gbuffers_block.vsh
+          cp pack/shaders/gbuffers_entities.fsh pack/shaders/gbuffers_block.fsh
+
+          cat << 'EOF' > pack/shaders/gbuffers_hand.vsh
+          #version 120
+          #include "/lib/common.glsl"
+
+          uniform mat4 gbufferModelViewInverse;
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vLightmap = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+              vColor = gl_Color;
+              vec3 vn = safeNormalize(gl_NormalMatrix * gl_Normal);
+              vWorldNormal = safeNormalize(mat3(gbufferModelViewInverse) * vn);
+              gl_Position = ftransform();
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_hand.fsh
+          #version 120
+          #include "/lib/settings.glsl"
+          #include "/lib/common.glsl"
+
+          /* DRAWBUFFERS:0 */
+          uniform sampler2D texture;
+          uniform mat4 gbufferModelViewInverse;
+          uniform vec3 sunPosition;
+          uniform vec3 shadowLightPosition;
+          uniform float rainStrength;
+          uniform float nightVision;
+          uniform int heldBlockLightValue;
+          uniform int heldBlockLightValue2;
+          uniform vec3 fogColor;
+
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vWorldNormal;
+
+          void main() {
+              vec4 tex = texture2D(texture, vTexcoord) * vColor;
+              if (tex.a < 0.1) discard;
+
+              vec3 albedo = srgbToLinear(tex.rgb);
+              vec3 N = safeNormalize(vWorldNormal);
+              vec3 sunDir = safeNormalize((gbufferModelViewInverse * vec4(sunPosition, 0.0)).xyz);
+              vec3 lightDir = safeNormalize((gbufferModelViewInverse * vec4(shadowLightPosition, 0.0)).xyz);
+
+              vec3 zen, hor, lCol, aSky;
+              getAtmosphere(sunDir.y, rainStrength, zen, hor, lCol, aSky);
+
+              float torchLight = clamp((vLightmap.x - 0.03125) / 0.9375, 0.0, 1.0);
+              float skyLight = clamp((vLightmap.y - 0.03125) / 0.9375, 0.0, 1.0);
+              float heldVal = max(float(heldBlockLightValue), float(heldBlockLightValue2)) / 15.0;
+              torchLight = max(torchLight, heldVal * 0.85);
+
+              float diff = max(dot(N, lightDir), 0.0) * 0.75 + 0.25;
+              vec3 torchCol = vec3(1.0, 0.56, 0.22) * pow(max(torchLight, 0.0001), 2.1) * 1.8;
+              vec3 amb = srgbToLinear(fogColor) * 0.15 + vec3(0.04) + vec3(0.35) * nightVision;
+
+              vec3 color = albedo * (aSky * 0.65 * skyLight + lCol * diff * skyLight + torchCol + amb);
+              color = linearToSRGB(acesToneMap(color));
+              gl_FragColor = vec4(color, tex.a);
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_textured.vsh
+          #version 120
+          uniform mat4 gbufferModelViewInverse;
+          varying vec2 vTexcoord;
+          varying vec2 vLightmap;
+          varying vec4 vColor;
+          varying vec3 vViewPos;
+          varying vec3 vWorldPos;
+
+          void main() {
+              vTexcoord = (gl_TextureMatrix[0] * gl_MultiTexCoord0).xy;
+              vLightmap = (gl_TextureMatrix[1] * gl_MultiTexCoord1).xy;
+              vColor = gl_Color;
+              vec4 vp = gl_ModelViewMatrix * gl_Vertex;
+              vViewPos = vp.xyz;
+              vWorldPos = (gbufferModelViewInverse * vp).xyz;
+              gl_Position = gl_ProjectionMatrix * vp;
+          }
+          EOF
+
+          cat << 'EOF' > pack/shaders/gbuffers_textured.fsh
+          #version 120
+          #in
