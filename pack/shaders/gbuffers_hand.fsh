@@ -36,10 +36,10 @@ void main() {
     torchLight = max(torchLight, heldVal * 0.85);
 
     float diff = max(dot(N, lightDir), 0.0) * 0.72 + 0.28;
-    vec3 torchCol = vec3(1.0, 0.56, 0.22) * pow(max(torchLight, 0.0001), 2.1) * 1.8;
-    vec3 amb = toLinear(fogColor) * 0.12 + vec3(0.04) + vec3(0.35) * nightVision;
+    vec3 torchCol = vec3(1.0, 0.56, 0.22) * pow(max(torchLight, 0.0001), 2.1) * 1.9;
+    vec3 amb = toLinear(fogColor) * 0.12 + vec3(0.04) + vec3(0.38) * nightVision;
 
     vec3 color = albedo * (ambientCol * skyLight + directCol * diff * skyLight + torchCol + amb);
-    color = toSRGB(softToneMap(color));
+    color = toSRGB(filmicToneMap(color));
     gl_FragColor = vec4(color, tex.a);
 }

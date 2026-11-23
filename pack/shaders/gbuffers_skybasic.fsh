@@ -31,13 +31,13 @@ void main() {
     if (nightVis > 0.01 && worldDir.y > 0.02) {
         vec3 grid = floor(worldDir * 220.0);
         float rnd = hash31(grid);
-        if (rnd > 0.993) {
+        if (rnd > 0.992) {
             float twinkle = 0.6 + 0.4 * sin(frameTimeCounter * 2.6 + rnd * 600.0);
             float hFade = smoothstep(0.02, 0.25, worldDir.y);
-            col += vec3(0.85, 0.92, 1.0) * twinkle * hFade * nightVis * 1.1;
+            col += vec3(0.85, 0.92, 1.0) * twinkle * hFade * nightVis * 1.4;
         }
     }
 
-    col = toSRGB(softToneMap(col));
+    col = toSRGB(filmicToneMap(col));
     gl_FragColor = vec4(col, 1.0);
 }

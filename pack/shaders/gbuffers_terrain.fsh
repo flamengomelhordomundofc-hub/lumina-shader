@@ -34,7 +34,7 @@ float getShadow(vec3 sClip, float NdotL) {
     float depth = (sClip.z * 0.5) * 0.5 + 0.5;
     if (depth <= 0.001 || depth >= 0.999) return 1.0;
 
-    float bias = 0.0008 + 0.0016 * (1.0 - max(NdotL, 0.0));
+    float bias = 0.0006 + 0.0014 * (1.0 - max(NdotL, 0.0));
     float off = 1.15 / float(shadowMapResolution);
     float lit = 0.0;
     lit += step(depth - bias, texture2D(shadowtex0, uv + vec2( off,  off)).r);
@@ -43,7 +43,7 @@ float getShadow(vec3 sClip, float NdotL) {
     lit += step(depth - bias, texture2D(shadowtex0, uv + vec2(-off, -off)).r);
     lit *= 0.25;
 
-    return mix(lit, 1.0, smoothstep(0.75, 0.99, edgeDist));
+    return mix(lit, 1.0, smoothstep(0.76, 0.99, edgeDist));
 }
 #endif
 
@@ -74,7 +74,7 @@ void main() {
     float NdotL = dot(N, lightDir);
     float diffuse = max(NdotL, 0.0);
     if (isFoliage > 0.5) {
-        diffuse = max(diffuse, 0.46);
+        diffuse = max(diffuse, 0.52);
     }
 
     float shadow = 1.0;
@@ -85,58 +85,58 @@ void main() {
 #endif
     shadow *= smoothstep(0.04, 0.35, skyLight);
 
-    float hemi = 0.65 + 0.35 * (N.y * 0.5 + 0.5);
+    float hemi = 0.70 + 0.30 * (N.y * 0.5 + 0.5);
     vec3 skyAmb = ambientCol * hemi * (skyLight * skyLight);
-    vec3 caveAmb = vec3(0.022, 0.024, 0.028) + vec3(0.35) * nightVision;
+    vec3 caveAmb = vec3(0.024, 0.026, 0.030) + vec3(0.38) * nightVision;
 
-    float torchCurve = pow(max(torchLight, 0.0001), 2.2) * 1.95;
-    vec3 torchCol = vec3(1.0, 0.55, 0.20) * torchCurve;
+    float torchCurve = pow(max(torchLight, 0.0001), 2.15) * 2.2;
+    vec3 torchCol = vec3(1.0, 0.54, 0.18) * torchCurve;
 
     vec3 direct = directCol * diffuse * shadow;
     if (isFoliage > 0.5) {
-        float sss = pow(max(dot(viewDir, lightDir), 0.0001), 4.0);
-        direct += directCol * sss * 0.45 * shadow;
+        float sss = pow(max(dot(viewDir, lightDir), 0.0001), 3.5);
+        direct += directCol * sss * 0.55 * shadow;
     }
 
     if (isEyeInWater == 1 && skyLight > 0.25 && diffuse > 0.0) {
-        vec3 absP = vWorldPos + cameraPosition;
+        vec3 absP = mod(vWorldPos + cameraPosition, 62.8318);
         float c1 = sin(absP.x * 1.8 + frameTimeCounter * 2.2) * cos(absP.z * 1.8 - frameTimeCounter * 1.6);
         float caustic = pow(max(c1 * 0.5 + 0.5, 0.0001), 3.0);
-        direct += vec3(0.18, 0.58, 0.68) * caustic * 0.45 * shadow * skyLight;
+        direct += vec3(0.20, 0.65, 0.78) * caustic * 0.52 * shadow * skyLight;
     }
 
     vec3 color = albedo * (skyAmb + caveAmb + direct + torchCol);
 
     if (isFoliage < 0.5 && shadow > 0.1 && skyLight > 0.4) {
         vec3 H = safeNormalize(lightDir - viewDir);
-        float spec = pow(max(dot(N, H), 0.0001), 32.0) * 0.14;
+        float spec = pow(max(dot(N, H), 0.0001), 28.0) * 0.16;
         color += directCol * spec * shadow;
     }
 
     if (isEmissive > 0.5) {
-        color += albedo * 2.4 + vec3(0.18, 0.10, 0.02);
+        color += albedo * 2.8 + vec3(0.22, 0.12, 0.03);
     }
 
     if (isOre > 0.5) {
         float maxC = max(tex.r, max(tex.g, tex.b));
         float minC = min(tex.r, min(tex.g, tex.b));
         float sat = (maxC - minC) / max(maxC, 0.001);
-        color += albedo * smoothstep(0.25, 0.55, sat) * 1.8;
+        color += albedo * smoothstep(0.24, 0.54, sat) * 2.1;
     }
 
     if (rainStrength > 0.08 && skyLight > 0.85 && N.y > 0.7 && isFoliage < 0.5) {
         float wet = rainStrength * smoothstep(0.85, 0.98, skyLight);
-        color *= (1.0 - wet * 0.22);
+        color *= (1.0 - wet * 0.24);
         float fres = pow(1.0 - max(dot(-viewDir, N), 0.0), 3.0);
-        color = mix(color, skyHor * 0.65, wet * fres * 0.35);
+        color = mix(color, skyHor * 0.60, wet * fres * 0.36);
     }
 
-    float fogF = smoothstep(far * 0.52, far * 0.98, dist);
-    fogF = clamp(fogF + smoothstep(26.0, far * 1.5, dist) * (0.08 + 0.18 * rainStrength), 0.0, 1.0);
+    float fogF = smoothstep(far * 0.50, far * 0.98, dist);
+    fogF = clamp(fogF + smoothstep(24.0, far * 1.5, dist) * (0.09 + 0.18 * rainStrength), 0.0, 1.0);
     vec3 fogDir = safeNormalize(vec3(viewDir.x, max(viewDir.y, 0.02), viewDir.z));
     vec3 fogCol = computeSky(fogDir, sunDir, frameTimeCounter, rainStrength, 0.0);
     color = mix(color, fogCol, fogF);
 
-    color = toSRGB(softToneMap(color));
+    color = toSRGB(filmicToneMap(color));
     gl_FragColor = vec4(color, tex.a);
 }

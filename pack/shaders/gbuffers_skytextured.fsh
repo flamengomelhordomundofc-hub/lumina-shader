@@ -7,6 +7,6 @@ varying vec4 vColor;
 
 void main() {
     vec4 tex = texture2D(texture, vTexcoord) * vColor;
-    tex.rgb *= (0.75 * (1.0 - rainStrength * 0.9));
+    tex.rgb *= (0.78 * (1.0 - rainStrength * 0.9));
     gl_FragColor = tex;
 }

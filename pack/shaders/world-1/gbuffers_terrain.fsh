@@ -28,5 +28,5 @@ void main() {
     vec3 col = albedo * light;
     float fogF = smoothstep(far * 0.25, far * 0.92, dist);
     col = mix(col, toLinear(fogColor) * 0.65, fogF);
-    gl_FragColor = vec4(toSRGB(softToneMap(col)), tex.a);
+    gl_FragColor = vec4(toSRGB(filmicToneMap(col)), tex.a);
 }
